@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
+    <meta name="theme-color" content="#FF6B00" />
+    <meta name="description" content="HEMELEY - Les saveurs qui font vibrer 😋🍛. Plateforme de découverte et commande de street food à Douala (Bonapriso, Bonanjo)" />
+    <meta name="keywords" content="street food, douala, bonapriso, bonanjo, cameroun, nourriture, food, hemeley" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="HEMELEY" />
+    
+    <!-- Open Graph Meta Tags -->
+    <meta property="og:title" content="HEMELEY - Les saveurs qui font vibrer 😋🍛" />
+    <meta property="og:description" content="Découvrez et commandez de la street food locale " />
+    <meta property="og:type" content="website" />
+    <meta property="og:locale" content="fr_FR" />
+    
+    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
+    
+    <!-- CAMPAY SDK -->
+    <script id="campay-sdk"></script>
+    
+    <title>HEMELEY - Les saveurs qui font vibrer 😋🍛</title>
+    
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background-color: #FFF8F0;
+      }
+    </style>
+  </head>
+  <body>
+    <noscript>Vous devez activer JavaScript pour utiliser cette application.</noscript>
+    
+    <div id="root"></div>
+    
+    <script>
+      // Service Worker DISABLED: the previous SW cached stale dev bundles and
+      // caused infinite reload loops. Actively unregister any existing
+      // registration so users cached on the old version recover automatically.
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then((regs) => {
+          regs.forEach((r) => r.unregister());
+        }).catch(() => {});
+      }
+    </script>
+  <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a496f6668d2c7492',t:'MTc5MTgxNzEwNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>

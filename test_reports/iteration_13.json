@@ -1,0 +1,44 @@
+{
+  "summary": "Backend tests for Vendor Analytics module: 11/13 passed. Endpoints /api/vendor/analytics (all periods, filters, auth 401), /api/vendor/analytics/export (PDF binary), PATCH /api/vendor/profile/branding (persist + validation) all work correctly. Menu Engineering quadrants classification works. Two real backend bugs found: (1) customer JWT tokens are signed with a different secret than what vendor endpoint uses to verify, resulting in 401 instead of 403 on cross-role access; (2) POST /api/vendor/menus silently drops cost_price field.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "POST /api/vendor/menus",
+        "issue": "cost_price is dropped on create. routes_menu.create_menu() builds the Menu(...) object without passing cost_price=menu_data.cost_price. Response shows cost_price:null even when payload contains cost_price:1200. This directly breaks Menu Engineering margin_pct computation in /api/vendor/analytics (all newly created menus fall back to the default 40% assumption).",
+        "priority": "HIGH"
+      },
+      {
+        "endpoint": "GET /api/vendor/analytics (with customer token)",
+        "issue": "Expected 403 (Accès vendeur uniquement) but got 401 'Token invalide'. Root cause: JWT secret mismatch between routes_customer.py and auth.py. In server.py, routes_customer is imported at line 20 BEFORE load_dotenv() at line 28, so routes_customer.JWT_SECRET falls back to 'hemeley_secret_2024'. auth.py falls back to 'hemeley_secret_key_2024'. Since env JWT_SECRET is not injected by supervisor and load_dotenv runs too late, the two modules read different fallback constants → customer JWT signature verification fails on vendor endpoints. This affects any endpoint that decodes customer tokens using auth.decode_token (and vice-versa). Fix: move load_dotenv() BEFORE any 'from routes_* import' statements in server.py, AND unify fallback default across auth.py + routes_customer.py.",
+        "priority": "HIGH"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_vendor_analytics.py",
+    "/app/test_reports/pytest/pytest_vendor_analytics.xml"
+  ],
+  "action_items": [
+    "Fix routes_menu.create_menu(): add cost_price=menu_data.cost_price to the Menu(...) constructor call.",
+    "Fix JWT secret mismatch: (a) move load_dotenv(ROOT_DIR/'.env') to the very top of server.py BEFORE any 'from routes_* import' statements, and (b) align the fallback default of JWT_SECRET across auth.py ('hemeley_secret_key_2024') and routes_customer.py ('hemeley_secret_2024') — ideally remove fallbacks entirely and let missing JWT_SECRET fail fast.",
+    "Pre-existing (not blocking analytics): 12 seeded menus have remaining_portions='' (empty string) instead of int — same module still returns 200 but this can bite integer comparisons elsewhere."
+  ],
+  "critical_code_review_comments": [
+    "routes_vendor_analytics.py is 649 lines — approaching the 700-line split threshold; consider splitting PDF generation into a helper module.",
+    "In _fetch_scoped_orders, the ISO string range comparison assumes UTC-formatted stored dates; works because created_at is written via datetime.now(timezone.utc).isoformat(), but any mixed timezone would silently mis-filter.",
+    "In vendor_analytics_pdf, the endpoint re-invokes vendor_analytics(request, ...) function directly instead of via FastAPI dependency injection — fine for now but couples the two handlers tightly.",
+    "PATCH /vendor/profile/branding correctly validates # prefix but does not validate hex length (e.g. '#ZZZ' would pass startswith('#') check). Minor.",
+    "The customer_id-based 'returning vs new' logic in weekly[] uses only orders within the current window as 'prior_ids' — a customer with older prior orders outside the window will be misclassified as 'new'. Not blocking but worth noting.",
+    "server.py: `include_router(vendor_analytics_router, ...)` is registered without prefix (routes carry /vendor/... themselves) — OK, consistent."
+  ],
+  "updated_files": [],
+  "success_rate": {"backend": "85% (11/13 tests passed)", "frontend": "n/a (backend only)"},
+  "test_credentials": "Vendor: vendeur@hemeley.com / hemeley2024 — OK. Customer: 690000001 / hemeley2024 — OK (login works, but JWT is signed with wrong secret, see bug above).",
+  "seed_data_creation": "One TEST_Analytics_* menu created and deleted within the test lifecycle (self-cleanup).",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "After main agent fixes the two bugs, rerun: pytest /app/backend/tests/test_vendor_analytics.py -v --junitxml=/app/test_reports/pytest/pytest_vendor_analytics.xml. Especially verify TestAnalyticsAuth::test_customer_token_returns_403 and TestMenuEngineering::test_create_menu_with_cost_price_and_quadrant. All other 11 tests already pass. Note: schema validation for /vendor/analytics is comprehensive (revenue/orders substructure, 7x24 heatmap, all top-level keys).",
+  "rca of the issue": "Bug 1 (cost_price dropped): routes_menu.py::create_menu(...) constructs Menu(...) with an explicit kwargs list that omits cost_price. Since MenuCreate model correctly accepts it, the field is silently dropped at Menu(...) construction. FIX: add `cost_price=menu_data.cost_price` in the Menu(...) call at line ~80. Bug 2 (customer token → 401): Confirmed via runtime probe — routes_customer.JWT_SECRET evaluates to fallback 'hemeley_secret_2024' while auth.JWT_SECRET evaluates to 'hemeley_secret_key_2024' (or the env value if load_dotenv runs early). Both modules import at module-load time, and load_dotenv is called AFTER these imports in server.py. Under supervisor, JWT_SECRET is not injected into the process environment, so both modules fall back. FIX: reorder load_dotenv before imports, and unify/remove the fallback."
+}

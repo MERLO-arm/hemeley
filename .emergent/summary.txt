@@ -1,0 +1,165 @@
+<analysis>**original_problem_statement**: 
+The user wants to build a Progressive Web App (PWA) called HEMELEY, a food discovery and ordering platform for street food in Douala. 
+PRODUCT REQUIREMENTS: 
+- Mobile-first PWA with zone selection for daily menus.
+- Dedicated spaces for Customers (Espace Client), Vendors (ultra-modern dashboard, QR codes for tables), Delivery Personnel, and Super Admins.
+- Multi-item cart, PDF/Excel reports, advanced analytics, and referral/loyalty systems.
+- Marketing landing page for vendors (Genuka style).
+
+**User's preferred language**: French (You MUST automatically detect the user's primary language from their messages inside the <trajectory> tag and INSTRUCT next agent to respond in French only)
+
+**what currently exists?** 
+A full-stack PWA (React + FastAPI + MongoDB). It features a dynamic Modern Homepage, a Genuka-style marketing Vendor Landing Page, an ultra-modern Vendor Dashboard (using real production data, interactive charts, and QR generation), a complete Customer Space (with loyalty points, referral system, settings, and profile management), a Restaurant Page for viewing vendor menus, and a multi-step checkout that is meant to auto-fill for logged-in users.
+
+**Last working item**: 
+    - Last item agent was working: Proposing a plan to the user to complete the Customer Space Advanced Features wiring (Profile editing, settings, referral system) and Checkout auto-fill logic. The agent successfully paused to gather user approval via .
+    - Status: BLOCKED / USER VERIFICATION PENDING (Waiting on  response)
+    - Agent Testing Done: N
+    - Which testing method agent to use? Both (Backend curl for APIs + Frontend testing agent after UI wiring).
+    - User Testing Done: N
+
+**All Pending/In progress Issue list**:
+  - Issue 1: Monolithic Frontend () Technical Debt (P1)
+     - Attempted fixes: Previous agents extracted , , , etc., but  is still over 3300 lines.
+     - Next debug checklist: Extract , , and routing logic into separate files inside .
+     - Why fix this issue and what will be achieved with the fix? Crucial for maintainability, preventing deployment/memory issues, and reducing merge conflicts.
+     - Status: IN PROGRESS
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix? Frontend
+     - Blocked on other issue: None
+
+  - Issue 2: Persistent User-Side Cache Problem (P2)
+     - Attempted fixes: Agent instructed user to clear cache/use incognito.
+     - Next debug checklist: Ensure any future major frontend updates have cache-busting mechanisms if possible.
+     - Why fix this issue and what will be achieved with the fix? Ensures the user actually sees the latest deployed changes.
+     - Status: BLOCKED (On user's local environment)
+     - Is recurring issue? Y
+     - Should Test frontend/backend/both after fix? NA
+     - Blocked on other issue: None
+
+  - Issue 3: Incomplete Super Admin Dashboard Navigation (P2)
+     - Attempted fixes: None in this session.
+     - Next debug checklist: Review  component code in . Debug the routing/locator timeout for the Vendeurs tab.
+     - Why fix this issue and what will be achieved with the fix? Completes platform management functionality.
+     - Status: NOT STARTED
+     - Is recurring issue? N
+     - Should Test frontend/backend/both after fix? Frontend
+     - Blocked on other issue: None
+
+**In progress Task List**:
+  - Task 1: Complete Customer Space Advanced Features wiring (P0)
+     - Where to resume:  and . The UI for profile editing, settings, and referrals is built, but you need to ensure the API calls ( requests) are fully wired up and saving to MongoDB correctly. Verify auto-fill in  ().
+     - What will be achieved with this? Fulfills the user's latest strict requirement for a fully functional, production-ready Customer Space.
+     - Status: IN PROGRESS
+     - Should Test frontend/backend/both after fix? Both
+     - Blocked on something: Waiting for user response to the proposed  plan.
+
+**Upcoming and Future Tasks**
+    Upcoming Tasks:
+    - Task 1 (P1): Complete CAMPAY Payment Integration. Connect the frontend checkout flow to the  backend endpoint.
+    - Task 2 (P1): Implement Table Reservation System (requested as part of the QR code flow).
+    - Task 3 (P2): Upgrade ChatBot to Conversational AI (currently rule-based, needs LLM integration via Emergent LLM Key).
+    
+    Future Tasks:
+    - Real-time notifications (WebSockets) for orders.
+    - Gamified VIP loyalty system UI enhancements.
+    - Email/SMS notifications for orders (Twilio/SendGrid integration).
+    - Geolocation and map-based delivery tracking.
+
+**Completed work in this session**
+- Sent the initial  plan to the user to prioritize the next set of fixes (Customer space API wiring and App.js refactoring). No code changes were made as the agent paused for instruction.
+
+**Earlier issues found/mentioned but not fixed**
+   - Issue 1:  is severely bloated.
+   - Debug checklist: Break down  into smaller page components in .
+   - Why to solve this issue and what will be achieved with this: Avoids bad gateway/memory crashes in the container and improves code health.
+   - Should Test frontend/backend/both after fix: Frontend
+   - Is recurring issue? Y
+
+**Known issue recurrence from previous fork**
+  - Issue recurrence in previous fork: Persistent User-Side Cache Problem.
+  - Recurrence count: 3+
+  - Status: BLOCKED (Remind the user to test via incognito/private browsing if they complain about missing features).
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+React, FastAPI, MongoDB, TailwindCSS, Chart.js, qrcode.react, Leaflet (Maps).
+
+**key DB schema**
+  - customers: 
+  - vendors: 
+  - menus: 
+  - orders: 
+
+**changes in tech stack**
+  - None this session.
+
+**All files of reference**
+  -  (UI built, requires API wire-up)
+  -  (Checkout auto-fill logic needs verification, needs major refactoring)
+  -  (Contains referral schema)
+  -  (Backend logic for customers)
+
+**Areas that need refactoring**: 
+ is urgently in need of refactoring. It contains , , and massive routing logic.
+
+**key api endpoints**
+  -  (Needs verification in UI)
+  -  & 
+  - 
+  - 
+
+**Critical Info for New Agent**
+1. **Pending Human Response:** The previous session ended *immediately* after triggering the  tool. Wait for or analyze the user's prompt to proceed with the planned tasks.
+2. **App.js Monolith:** Do not add more heavy logic to . Extract components.
+3. **Customer Space Verification:** The UI exists, but forms for profile edits, settings, and referrals need to actually call  endpoints and update MongoDB.
+4. **Respond in French:** All communications must be in French.
+
+**documents and test reports created in this job**
+  -  (Passed 100% in older fork)
+  -  
+  - 
+
+**Last 10 User Messages and any pending HUMAN messages**
+1. **User (LATEST from previous fork)**: Complains that the generated report shows the customer cannot edit info, manage settings, or use referrals, and that checkout doesn't auto-fill for logged-in users. Demands these be fixed like a pro.
+2. **Agent**: Proposes a plan via  to fix the Customer Space wiring and Checkout auto-fill, and to begin extracting .
+3. **PENDING HUMAN MESSAGE**: User is expected to reply to the  prompt. You must act based on their response to this prompt.
+
+**Project Health Check:**
+- Broken:  monolith is a severe technical debt risk. Super Admin dashboard navigation is broken.
+- Mocked: CAMPAY frontend implementation.
+
+**3rd Party Integrations**
+- CAMPAY (Payments) — requires User API Key
+- Leaflet (Maps)
+- Chart.js (Analytics)
+
+**Testing status**
+  - Testing agent used after significant changes: NO (No changes made in this session yet)
+  - Troubleshoot agent used after agent stuck in loop: NO
+  - Test files created: None
+  - Known regressions: None currently.
+
+**Credentials to test flow:**
+- Customer:  /  (or )
+- Vendor:  /  (or )
+- Admin:  / 
+
+**What agent forgot to execute**
+The agent correctly paused to use  as per system instructions, so nothing was forgotten in this immediate session. However, inherited technical debt ( extraction and Super Admin Navigation fix) remains untouched and must be prioritized alongside the Customer Space API wiring.
+
+**Debugging checklist for current issue**
+    Issue: Complete Customer Space Advanced Features (Profile edits, Addresses, Settings) wiring and Checkout Auto-fill.
+
+    Frontend files to check: 
+    -  (Check the form  handlers. Do they actually make  or  calls to the backend?)
+    -  (Search for  component. Verify if it reads from the Customer Context and auto-populates the name/phone/address state).
+  
+    Backend files to check:
+    -  (Verify endpoints like  or referral endpoints exist, are correctly protected by JWT, and update MongoDB properly).
+    -  (Verify referral/settings schema properties).
+
+    Database to check:
+    -  collection. Validate updates persist.</analysis>

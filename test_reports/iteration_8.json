@@ -1,0 +1,97 @@
+{
+  "summary": "Backend regression for HEMELEY Wallet & Escrow Phase 1+2. Created /app/backend/tests/test_wallet_phase1_2.py with 25 pytest cases covering wallet auto-create + HMAC integrity, transactions, recharge (min amount + CAMPAY demo path + audit), webhook HMAC signature (401 paths), vendor withdrawals (min/insufficient/success), admin finance overview, list wallets/transactions/audit-logs/withdrawals, freeze/unfreeze, adjust + reject flow, permission boundaries. 24/25 PASSED. 1 real bug found: GET /api/wallet/me returns 500 for super_admin/admin users due to Pydantic Literal mismatch on WalletRole.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/wallet/me (as admin/super_admin)",
+        "issue": "Returns 500 ValidationError. Wallet.role Literal accepts only ['customer','vendor','delivery','admin_escrow','admin_commissions'] but auth resolves admin token role as 'super_admin'. Spec required: 'auto-creates wallet for customer/vendor/delivery/admin on first call'.",
+        "priority": "HIGH",
+        "logs": "pydantic_core.ValidationError: Input should be 'customer','vendor','delivery','admin_escrow' or 'admin_commissions' [input_value='super_admin']",
+        "suggested_fix": "Either (a) extend WalletRole Literal to include 'admin' and 'super_admin', OR (b) in routes_wallet._resolve_actor map 'super_admin'/'admin' role to a synthetic admin wallet (e.g. role='admin_escrow' for SYSTEM_ESCROW user_id, or create a personal admin wallet under role 'admin'). Recommended: add 'admin' to WalletRole literal and use it for super_admin personal wallets so admin_escrow / admin_commissions remain SYSTEM-only."
+      }
+    ],
+    "minor": [
+      {
+        "endpoint": "POST /api/wallet/withdrawals on frozen wallet",
+        "issue": "Order of checks: balance < amount → 400 'Solde insuffisant' fires before wallet.status check (wallet.status is verified inside _update_wallet_balance). When a frozen wallet has zero balance, user sees 'Solde insuffisant' instead of clearer 'Portefeuille frozen — opération bloquée'. Move freeze check up to the route handler for clearer UX."
+      },
+      {
+        "endpoint": "POST /api/wallet/recharge",
+        "issue": "Current implementation inserts recharge_request row ONLY when CAMPAY accepts the call. If CAMPAY raises (502 path), the request row is never persisted — contradicts spec line 'Recharge_request row should be inserted regardless'. Recommend persisting a recharge_request with status='failed' even when CAMPAY initiation fails so admin has full audit trail."
+      },
+      {
+        "endpoint": "POST /api/admin/withdrawals/{id}/approve (CAMPAY failure path)",
+        "issue": "On CAMPAY failure the wallet is refunded and a 'withdrawal_reject' tx is recorded, but the audit log does NOT receive a 'withdrawal.fail' (or similar) entry — only the success path writes 'withdrawal.approve'. Missing audit trail on failure approvals."
+      }
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "passed_tests": [
+    "GET /api/wallet/me as customer — auto-create + HMAC integrity_hash matches local recompute",
+    "GET /api/wallet/me as vendor — auto-create + HMAC integrity_hash valid",
+    "GET /api/wallet/me without token → 401",
+    "GET /api/wallet/transactions (customer + vendor) → 200 list",
+    "POST /api/wallet/recharge below MIN_RECHARGE → 400 'Montant minimum'",
+    "POST /api/wallet/recharge valid amount in demo → 502 with French error 'Erreur CAMPAY'",
+    "POST /api/webhooks/campay no X-Campay-Signature → 401",
+    "POST /api/webhooks/campay invalid signature → 401",
+    "POST /api/wallet/withdrawals below MIN_RETRAIT → 400",
+    "POST /api/wallet/withdrawals insufficient balance → 400 'Solde insuffisant'",
+    "POST /api/wallet/withdrawals as customer → 403",
+    "GET /api/wallet/withdrawals/me → 200 list",
+    "GET /api/admin/finance/overview returns escrow_balance, escrow_held, commissions_balance, by_role, pending_withdrawals_count/amount, total_recharges",
+    "GET /api/admin/finance/overview as customer → 403",
+    "GET /api/admin/wallets — confirms BOTH SYSTEM wallets exist: (SYSTEM_ESCROW, admin_escrow) and (SYSTEM_COMMISSIONS, admin_commissions)",
+    "GET /api/admin/transactions — every tx reference matches ^TXN-HEMELEY-\\d{8}-[A-F0-9]{6}$ and has signature field",
+    "GET /api/admin/audit-logs → 200",
+    "GET /api/admin/withdrawals?status=pending → 200",
+    "PUT /api/admin/wallets/{id}/freeze (super_admin) → status frozen + audit",
+    "PUT /api/admin/wallets/{id}/unfreeze → status active",
+    "POST /api/admin/wallets/{id}/adjust delta=5000 → balance += 5000, version+1, integrity_hash recomputed correctly",
+    "POST /api/admin/wallets/{id}/adjust delta=0 → 400",
+    "End-to-end: adjust credit → vendor withdrawal request → admin reject without reason 400 → reject with reason 200 → wallet refunded",
+    "POST /api/admin/withdrawals/{id}/reject on already-rejected → 400",
+    "Permissions: customer cannot list /api/admin/wallets → 401/403; vendor cannot freeze wallet → 401/403"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_wallet_phase1_2.py",
+    "/app/test_reports/pytest/pytest_wallet_phase1_2.xml"
+  ],
+  "action_items": [
+    "FIX HIGH: Resolve role mismatch in /api/wallet/me for super_admin/admin tokens (extend WalletRole Literal to include 'admin' and map 'super_admin' → 'admin' in _resolve_actor). Right now any admin login that hits the wallet UI gets 500.",
+    "PERSIST recharge_request row even when CAMPAY initiation fails (status='failed', failure_reason set), to keep full audit trail per spec.",
+    "Reorder checks in POST /api/wallet/withdrawals: verify wallet.status == 'active' before balance check so frozen users get the correct French error message.",
+    "Add audit log entry when admin withdrawal approval triggers a CAMPAY payout failure + auto-refund."
+  ],
+  "critical_code_review_comments": [
+    "wallet_models.WalletRole Literal does not cover the 'admin'/'super_admin' role coming from auth — root cause of /api/wallet/me 500.",
+    "routes_wallet._resolve_actor swallows ALL exceptions on customer-token path (try/except (HTTPException, KeyError, Exception)) — this can hide bugs and downgrade real auth errors. Narrow to expected exceptions.",
+    "routes_wallet.py: instantiates a local Creds class to fake HTTPAuthorizationCredentials — fragile. Prefer FastAPI's Security/Depends pattern or a single helper that decodes the JWT once and dispatches by role.",
+    "routes_wallet.initiate_recharge: recharge_request row is inserted only when CAMPAY succeeds (call wrapped in try). Spec requires the row regardless. Move the insert before the CAMPAY call (status='pending'), then update with campay_reference / failure_reason after.",
+    "wallet_service._update_wallet_balance does NOT retry on optimistic-concurrency 409 — under real concurrent load callers will receive 409 frequently. Consider 1-2 retry attempts inside the function.",
+    "routes_admin_wallet.adjust_wallet uses raw `await request.json()` instead of a Pydantic body model — bypasses validation and lacks OpenAPI schema. Add an AdjustRequest(BaseModel) {delta:float, reason:str}.",
+    "routes_admin_wallet.freeze_wallet/unfreeze_wallet bypass _update_wallet_balance and write directly to db — they correctly bump version + integrity_hash, but if status is already frozen/active, no idempotency guard. Add a check.",
+    "routes_wallet.campay_webhook: when amount mismatch is detected, returns {success:False} with HTTP 200 — this stops CAMPAY's retry, which is desirable, but the failure_reason='amount_mismatch' should also write a wallet_audit_log entry.",
+    "wallet_security.sign_payload uses str(p) for floats — works because callers pre-format with f'{x:.2f}', but a future caller might pass a raw float and silently break HMAC verification. Add an assertion or normalize inside sign_payload.",
+    "Token resolution: customer/vendor login both return token; backend has no token-revocation list. JWT_SECRET is hardcoded-looking string in .env (acceptable for dev but flag for prod)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_wallet_phase1_2.py (NEW)"
+  ],
+  "success_rate": {"backend": "96% (24/25)", "frontend": "skipped per request"},
+  "test_credentials": {
+    "customer": {"phone": "690000001", "password": "hemeley2024"},
+    "vendor": {"email": "vendeur@hemeley.com", "password": "hemeley2024"},
+    "super_admin": {"email": "admin@hemeley.com", "password": "hemeley2024"}
+  },
+  "seed_data_creation": "None. Tests credit/debit and reject within the same flow to leave vendor wallet balance unchanged. SYSTEM_ESCROW and SYSTEM_COMMISSIONS wallets auto-created on admin overview call (if not already present).",
+  "retest_needed": true,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Phase 1+2 wallet ledger is solid. 24/25 tests green. The single failing test (TestWalletMe::test_admin_wallet_auto_created) is a genuine backend bug — the WalletRole Literal in /app/backend/wallet_models.py does not accept 'admin' or 'super_admin', so the existing JWT role of admin@hemeley.com (super_admin) crashes /api/wallet/me with 500. Once main agent extends WalletRole and/or maps super_admin to a valid wallet role inside routes_wallet._resolve_actor, re-run the suite: `pytest /app/backend/tests/test_wallet_phase1_2.py -v`. CAMPAY demo always returns 401 from upstream (not our problem; tests already accept 502 path).",
+  "rca of the issue": {
+    "bug": "GET /api/wallet/me crashes with HTTP 500 when called by an admin/super_admin user.",
+    "root_cause": "wallet_models.py defines `WalletRole = Literal['customer','vendor','delivery','admin_escrow','admin_commissions']`. routes_wallet._resolve_actor returns the user's actual auth role ('super_admin' or 'admin'), which is then passed verbatim into Wallet(user_id=..., role=role) inside wallet_service.get_or_create_wallet. Pydantic v2 validation raises literal_error.",
+    "reproduction": "1) POST /api/auth/login with admin@hemeley.com / hemeley2024 → token. 2) GET /api/wallet/me with that token → 500 {'detail':'Internal server error','type':'ValidationError'}.",
+    "mitigation": "Either extend WalletRole to include 'admin' (and map 'super_admin'→'admin' in _resolve_actor before calling get_or_create_wallet), or short-circuit /api/wallet/me for admin roles to return the SYSTEM_ESCROW (or both system) wallets. Recommended: add 'admin' to WalletRole and treat super_admin personal wallet as role='admin'."
+  }
+}

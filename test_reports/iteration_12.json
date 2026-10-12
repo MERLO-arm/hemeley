@@ -1,0 +1,36 @@
+{
+  "summary": "Tested HEMELEY CamPay (Cameroon Mobile Money) integration via pure httpx (NO pip SDK). 11/12 backend tests pass; 1 skip is due to seed data (no menu portions available), not a CamPay defect. All Pydantic validations (amount >= 25, phone format), phone normalization (+237/0/9-digit local), happy-path POST /api/campay/collect, MongoDB persistence in campay_transactions, GET /api/campay/status/{ref} normalization, and 502 error on invalid reference are verified.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "/api/campay/collect", "issue": "CamPay sandbox enforces per-phone rate limit (~1 req/min). When hit, backend correctly surfaces it as 502 ('CAMPAY error 429: Rate limit per Phone number exceeded'). Tests now use unique phones to avoid this."},
+      {"endpoint": "/api/orders/checkout", "issue": "Seeded menu (poulet DG) has remaining_portions=0 → checkout returns 400 'Not enough portions'. Integration with CamPay collect (lines 298-328 in routes_order.py) could not be E2E-tested. Code review of routes_order.py confirms campay_client.initiate_payment + persistence of campay_reference/campay_status='PENDING' is wired correctly."}
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_campay.py",
+    "/app/test_reports/pytest/pytest_campay.xml"
+  ],
+  "action_items": [
+    "(Optional) Re-seed at least one menu with remaining_portions > 0 to enable E2E checkout→CamPay integration testing in the future.",
+    "(Optional) Consider adding a small retry/backoff or surface a more user-friendly message when CamPay returns 429 for the same phone within 60s (currently surfaced as raw 502).",
+    "No code changes required for the CamPay endpoints — implementation conforms to the 10-step CamPay guide: permanent token + dynamic fallback, exact 'Authorization: Token {token}' header, /token/, /collect/, /transaction/{ref}/ endpoints, lazy env props resolve the load_dotenv timing bug."
+  ],
+  "critical_code_review_comments": [
+    "campay.py: lazy @property pattern for env vars correctly resolves the load_dotenv-at-import-time race condition. Good.",
+    "campay.py: _request_with_retry refreshes token only on 401/403 (correct). Other 4xx are surfaced as 502 with truncated body — clean.",
+    "routes_payment.py: campay_router endpoints are public-by-design (no auth dependency) — confirm this is intended (it matches the spec but exposes a payment-initiation surface; consider rate-limiting per IP/phone at the FastAPI layer if abuse becomes a concern).",
+    "routes_payment.py: campay_transactions insert wrapped in try/except — failures are only logged. Acceptable for audit table but means a DB outage will not block the user-facing /collect response.",
+    "routes_order.py L298-328: payment_method 'orange'/'mtn' triggers CamPay collect AFTER the order is inserted; failures only mark campay_status='FAILED' — the order itself is not rolled back. Verify this is the intended UX (probably yes, customer can retry from the order detail screen)."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_campay.py"
+  ],
+  "success_rate": {"backend": "92% (11/12 pass, 1 skip due to seed data, 0 fail)", "frontend": "N/A — backend-only review"},
+  "test_credentials": "Public endpoints — no auth required for /api/campay/* by design",
+  "seed_data_creation": "None. Tests create transient campay_transactions rows tied to throw-away phone numbers (237 + random 9 digits). campay_transactions docs are left in DB for audit; they have TEST_REF_ or HEMELEY- external_reference prefixes for easy cleanup.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "CamPay integration is solid. test_campay.py covers: 4 validation tests (422/400), 5 happy-path tests (UUID reference, ussd_code, operator, status, MongoDB persistence, phone normalization +237/0X/9-digit/custom external_reference), 2 status endpoint tests, 1 order-checkout integration (skipped due to seed). If you need to re-run, wait 60s between consecutive calls using the same phone OR rely on the unique-phone fixture already in tests. Demo CamPay caps amount at 25 XAF; any test using amount > 25 will fail at the CamPay side, not the backend."
+}

@@ -1,0 +1,39 @@
+{
+  "summary": "Backend tests for HEMELEY cover_photos + custom_categories + strict category validation: 16/17 PASSED (94%). All spec items work: GET /api/vendor/me (auth 200 / no-token 401 / customer-token 403), PATCH /api/vendor/profile/branding (cover_photos 2 valid, 4→400, invalid data-url→400; custom_categories trim+persist, conflict with base→400, >40 chars→400), POST/PUT /api/menus/ strict category validation (custom vendor lowercase→original label 'Pizzas'; INEXISTANT→400; PUT XYZ→400), GET /api/vendors/{id} exposes cover_photos + custom_categories, analytics + PDF export no-regression, DB migration confirmed (0 menus with null category). ONE new blocker found: the entire public_router (routes_public.py) is NEVER registered in server.py, so /api/public/menu/{slug} — the PublicMenuPage endpoint required by the feature — returns 404 for ALL slugs. The two bugs from iteration_13 (JWT secret mismatch, cost_price dropped) appear fixed.",
+  "backend_issues": {
+    "critical": [
+      {
+        "endpoint": "GET /api/public/menu/{slug} (and /api/public/settings, /api/public/partnership, /api/public/order/{slug})",
+        "issue": "routes_public.public_router is defined but NEVER included in server.py. `grep 'routes_public' /app/backend/server.py` returns 0 hits (only routes_vendor_public is imported/registered). Consequence: the whole PublicMenuPage feature (/menu/:slug on the frontend) cannot fetch data — 404 on every slug. The _serialize_vendor_public helper that exposes cover_photos + custom_categories is unreachable. FIX: in /app/backend/server.py add `from routes_public import public_router` and `api_router.include_router(public_router)`.",
+        "priority": "CRITICAL"
+      }
+    ],
+    "minor": []
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/test_hemeley_covers_and_categories.py",
+    "/app/test_reports/pytest/pytest_covers_categories.xml"
+  ],
+  "action_items": [
+    "REGISTER public_router in server.py: `from routes_public import public_router` + `api_router.include_router(public_router)`. Without this, PublicMenuPage (/menu/:slug) is entirely broken.",
+    "Consider seeding vendeur@hemeley.com vendor with a slug (currently has no slug field) so the QR-code / public menu page can be tested against the hero vendor account. Spec referenced slug 'hemeley-preview' which does not exist in DB.",
+    "Prior iteration_13 bugs verified fixed: (a) customer JWT now correctly yields 403 on /api/vendor/me, (b) cost_price no longer dropped."
+  ],
+  "critical_code_review_comments": [
+    "server.py only registers vendor_public_router; the public_router (partnership, settings, menu/{slug}, order/{slug}) is orphaned — a full feature surface is dead code in production.",
+    "routes_vendor_analytics.py grew to 706 lines with the branding PATCH block; still under the 700 threshold but any further addition should trigger a split (extract branding+profile into routes_vendor_profile.py).",
+    "PATCH /vendor/profile/branding validates data URL prefix but not the actual base64 payload integrity — a malformed base64 string prefixed 'data:image' would pass and be persisted (client would crash rendering). Consider basic base64 sanity check.",
+    "PATCH /vendor/profile/branding: custom_categories dedup uses case-insensitive key but preserves the FIRST casing seen — good. However there is no limit check on total combined byte size of the vendor doc (3 cover_photos × ~5.5MB = ~16MB) which is near MongoDB's 16MB BSON limit. Consider storing cover_photos in GridFS or as CDN URLs.",
+    "_validate_category in routes_menu.py duplicates BASE_CATEGORIES from routes_vendor_analytics.py — extract to a shared constants module.",
+    "MenuCreate.category defaults to 'plat' but does not enforce membership at Pydantic level; validation is done only in _validate_category. Consistent, but Pydantic-level validation would give better OpenAPI docs."
+  ],
+  "updated_files": ["/app/backend/tests/test_hemeley_covers_and_categories.py"],
+  "success_rate": {"backend": "94% (16/17)", "frontend": "n/a (backend only)"},
+  "test_credentials": "Vendor vendeur@hemeley.com / hemeley2024 ✓; Customer 690000001 / hemeley2024 ✓ (both work and role checks correct now).",
+  "seed_data_creation": "Test menus prefixed TEST_ are created and deleted in-line by each test. Vendor branding is snapshotted at each PATCH test and restored via fixture teardown — final vendor state left as ['Pizzas','Sushi'] with one cover_photo.",
+  "retest_needed": true,
+  "main_agent_can_self_test": true,
+  "context_for_next_testing_agent": "After main agent adds `api_router.include_router(public_router)` in server.py, rerun: pytest /app/backend/tests/test_hemeley_covers_and_categories.py -v. The single failing test TestPublicExposure::test_public_menu_by_slug_exposes_new_fields should then pass IF at least one vendor has a slug (currently only 'chez-marie-test'). vendeur@hemeley.com has no slug set. All other 16 tests already pass and cover the full feature spec.",
+  "rca of the issue": "routes_public.py was created with public_router but the import + include_router line was never added to /app/backend/server.py — likely oversight during module split. Verified via `grep -rn 'routes_public' /app/backend/*.py` which shows the file exists but is only self-referenced. Verified externally: curl /api/public/settings → 404, curl /api/public/menu/<any-slug> → 404."
+}

@@ -1,0 +1,144 @@
+{
+  "identity": {
+    "name": "HEMELEY",
+    "slogan": "Les saveurs qui font vibrer 😋🍛",
+    "persona": "E1: The Anti-AI Designer",
+    "vibe": "Spicy, Street, Urgent, Local, Warm, Unapologetic",
+    "design_principles": [
+      "Fusion over Imitation: Street stall aesthetics x Fintech speed",
+      "Emotion First: Hunger and Urgency",
+      "Content is King: Big, juicy photos, clear prices",
+      "Zoom In: Focus on the food texture",
+      "Contrast: High contrast for outdoor visibility (sunlight)"
+    ]
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Bebas Neue, sans-serif",
+      "usage": "Page titles, Menu names, Big CTAs",
+      "weights": ["400"],
+      "letter_spacing": "tracking-wide"
+    },
+    "body": {
+      "font_family": "Manrope, sans-serif",
+      "usage": "Descriptions, Prices, UI elements",
+      "weights": ["400", "500", "700"],
+      "letter_spacing": "tracking-normal"
+    },
+    "google_fonts_import": "https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;700&display=swap"
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "DEFAULT": "#FF6B00",
+        "foreground": "#FFFFFF",
+        "name": "Piment Orange"
+      },
+      "secondary": {
+        "DEFAULT": "#D92828",
+        "foreground": "#FFFFFF",
+        "name": "Sauce Red"
+      },
+      "background": {
+        "DEFAULT": "#FFF8F0",
+        "name": "Cassava White"
+      },
+      "surface": {
+        "DEFAULT": "#FFFFFF",
+        "name": "Clean White"
+      },
+      "text": {
+        "DEFAULT": "#2D241E",
+        "muted": "#6B5D54",
+        "name": "Charcoal"
+      },
+      "accent": {
+        "DEFAULT": "#FACC15",
+        "foreground": "#2D241E",
+        "name": "Mustard Yellow"
+      },
+      "success": {
+        "DEFAULT": "#10B981",
+        "name": "Fresh Green"
+      }
+    },
+    "usage_rules": [
+      "Use Primary Orange for the main 'HEMELEY' CTA button.",
+      "Use Secondary Red for urgent tags (e.g., 'Only 2 left').",
+      "Background should be Cassava White to avoid clinical sterility.",
+      "Text should never be pure black (#000000). Use Charcoal (#2D241E)."
+    ]
+  },
+  "layout": {
+    "spacing_system": "Generous padding (p-4, p-6) even on mobile to let food photos breathe.",
+    "grid_strategy": "Mobile-first single column. Tablet/Desktop: Masonry/Bento grid.",
+    "container_width": "max-w-md mx-auto for mobile view simulation on desktop, or full width responsive.",
+    "z_index_layers": {
+      "base": 0,
+      "sticky_nav": 40,
+      "modal": 50,
+      "toast": 60
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-primary text-primary-foreground rounded-full font-heading text-xl tracking-wide shadow-lg hover:scale-105 transition-transform active:scale-95",
+      "secondary": "bg-white border-2 border-primary text-primary rounded-full font-heading text-lg hover:bg-primary/10",
+      "ghost": "text-text-muted hover:text-primary font-body font-medium"
+    },
+    "cards": {
+      "menu_item": "bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden flex flex-col relative group hover:shadow-md transition-shadow",
+      "vendor_stat": "bg-white rounded-xl p-4 border border-stone-100 shadow-sm flex flex-col items-center justify-center text-center"
+    },
+    "inputs": {
+      "style": "bg-white border-2 border-stone-200 rounded-xl px-4 py-3 focus:border-primary focus:ring-0 transition-colors font-body text-lg placeholder:text-stone-400"
+    },
+    "navigation": {
+      "bottom_bar": "fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-md border-t border-stone-200 p-4 flex justify-around items-center z-40 safe-area-bottom"
+    }
+  },
+  "visual_enhancers": {
+    "border_radius": "rounded-2xl (16px) for cards, rounded-full for buttons.",
+    "shadows": "Soft, diffuse shadows: shadow-[0_8px_30px_rgb(0,0,0,0.04)].",
+    "textures": "Subtle noise overlay on the background if possible, or just solid warm white.",
+    "micro_interactions": "Buttons scale down on click. Images zoom slightly on hover."
+  },
+  "image_urls": {
+    "hero_backgrounds": [
+      "https://images.unsplash.com/photo-1647639294753-e2e9cbc263f6?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHwxfHxhZnJpY2FuJTIwc3RyZWV0JTIwZm9vZCUyMGdyaWxsZWQlMjBmaXNoJTIwcGxhbnRhaW58ZW58MHx8fG9yYW5nZXwxNzY2MzIwOTg2fDA&ixlib=rb-4.1.0&q=85"
+    ],
+    "food_items": [
+      "https://images.pexels.com/photos/8858693/pexels-photo-8858693.jpeg",
+      "https://images.pexels.com/photos/1343537/pexels-photo-1343537.jpeg",
+      "https://images.pexels.com/photos/8857054/pexels-photo-8857054.jpeg",
+      "https://images.unsplash.com/photo-1610216339841-a0456a6c86a9?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDF8MHwxfHNlYXJjaHwxfHxzcGljeSUyMGZvb2QlMjBwZXBwZXIlMjBzYXVjZSUyMHZpYnJhbnR8ZW58MHx8fHJlZHwxNzY2MzIwOTg4fDA&ixlib=rb-4.1.0&q=85",
+      "https://images.unsplash.com/photo-1596119414935-5de81441482e?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDQ2NDF8MHwxfHNlYXJjaHwyfHxzcGljeSUyMGZvb2QlMjBwZXBwZXIlMjBzYXVjZSUyMHZpYnJhbnR8ZW58MHx8fHJlZHwxNzY2MzIwOTg4fDA&ixlib=rb-4.1.0&q=85"
+    ],
+    "vendors": [
+      "https://images.unsplash.com/photo-1644192842573-8f140109d2fd?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHwyfHxoYXBweSUyMGFmcmljYW4lMjBmb29kJTIwdmVuZG9yJTIwY29va2luZ3xlbnwwfHx8fDE3NjYzMjA5ODl8MA&ixlib=rb-4.1.0&q=85",
+      "https://images.unsplash.com/photo-1687422808278-d17b09489ed1?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHwzfHxoYXBweSUyMGFmcmljYW4lMjBmb29kJTIwdmVuZG9yJTIwY29va2luZ3xlbnwwfHx8fDE3NjYzMjA5ODl8MA&ixlib=rb-4.1.0&q=85"
+    ]
+  },
+  "instructions_to_main_agent": {
+    "general": [
+      "Implement the PWA manifest immediately.",
+      "Ensure the app is mobile-first. Test on mobile view.",
+      "NO LOGIN for customers. This is critical.",
+      "Use 'lucide-react' for icons.",
+      "Use 'sonner' for toast notifications.",
+      "Use 'shadcn/ui' components but override styles to match the 'Spicy Street' theme."
+    ],
+    "specific_pages": {
+      "home": "Zone selector must be big and tappable. Menu list should load instantly.",
+      "menu_detail": "Hero image should be large. 'HEMELEY' button fixed at bottom.",
+      "order_modal": "Simple form. Pseudonym, Comment, Phone. Payment instructions clear.",
+      "vendor_dashboard": "Simple auth. Big buttons for 'Add Menu' and 'Toggle Availability'."
+    },
+    "universal_guidelines": [
+      "Do not use gradients for the background. Use solid warm white.",
+      "Do not center align everything. Use left align for text, center for big headings if needed.",
+      "Add data-testid to all interactive elements.",
+      "Ensure high contrast for outdoor usage."
+    ]
+  }
+}

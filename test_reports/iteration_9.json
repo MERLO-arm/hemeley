@@ -1,0 +1,76 @@
+{
+  "summary": "Backend regression for HEMELEY Wallet & Escrow Phase 3 (order lifecycle escrow). Created /app/backend/tests/test_wallet_phase3_escrow.py with 14 pytest cases covering wallet hold on order create + checkout, insufficient balance, unknown phone, frozen wallet block, cash/non-wallet bypass, multi-vendor checkout HTTPException re-raise, escrow release on delivered (commission 15% + delivery + vendor split), idempotent re-delivery, refund on cancellation, permissions (super_admin OK / cross-vendor 403). 14/14 PASSED. Re-ran Phase 1+2 regression: 25/25 PASSED (admin wallet bug from iter_8 confirmed FIXED). Total 39/39 backend tests green. One real bug found in this run: POST /api/orders/ and /api/orders/checkout return the unmodified Pydantic order object so payment_status/order_status/confirmed_at appear as 'pending' in the HTTP response even though MongoDB persisted them as 'success'/'confirmed'/timestamp. Fix is one line in routes_order.py (use order_doc as response or refresh fields on the model before return).",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {
+        "endpoint": "POST /api/orders/ and POST /api/orders/checkout (payment_method='wallet')",
+        "issue": "API response returns the original Pydantic Order with payment_status='pending', order_status='pending', confirmed_at=None — the wallet-hold updates are only applied to order_doc which is what gets persisted. DB state is correct, but any frontend that trusts the immediate POST response will show the order as unpaid/pending. Fix: after `_hold_wallet_for_order(...)`, also mutate `order.payment_status='success'`, `order.order_status='confirmed'`, `order.confirmed_at=...` before returning (or return order_doc / refetch from DB).",
+        "priority": "MEDIUM"
+      },
+      {
+        "endpoint": "PUT /api/orders/{id}/status repeated 'delivered' on wallet order",
+        "issue": "Idempotency works (no double-payout — release tx count stays the same thanks to the wallet_service guard), but the route happily returns 200 the second time and silently re-runs the no-op release. Consider returning 400 'Statut déjà mis à jour' or skipping the wallet_service call to avoid the extra mongo round-trip."
+      },
+      {
+        "endpoint": "POST /api/orders/checkout — vendor.zone fallback",
+        "issue": "Checkout uses vendor['zone'] without a None-guard; a vendor record without a zone field will raise KeyError and now (post fix) bubble up as a 500 from the generic except. Add `.get('zone', 'Akwa')`."
+      }
+    ]
+  },
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "passed_tests": [
+    "POST /api/orders/ wallet — order created, customer wallet debited by total, SYSTEM_ESCROW.balance/held both += total, wallet_transactions has 'order_payment', audit log 'order.escrow.hold'",
+    "POST /api/orders/ wallet insufficient → 400 'Solde wallet insuffisant', no order created",
+    "POST /api/orders/ wallet unknown phone → 400 'Aucun compte client'",
+    "POST /api/orders/ wallet frozen wallet → 403 'Portefeuille frozen — opération bloquée'",
+    "POST /api/orders/ payment_method='cash' → payment_status='pending', no wallet side-effects",
+    "POST /api/orders/checkout wallet — debits customer per vendor, holds escrow per order",
+    "POST /api/orders/checkout wallet insufficient → 400 (HTTPException re-raise verified, no longer generic 500)",
+    "PUT /api/orders/{id}/status delivered (wallet) — escrow.balance/held -= total, commissions += 15%, vendor wallet += total - 15% - delivery_fee. tx 'commission' + 'escrow_release_vendor'. Audit 'order.escrow.release'",
+    "PUT /api/orders/{id}/status delivered (cash) — no wallet side-effects",
+    "PUT /api/orders/{id}/status delivered twice (idempotency) — release tx count unchanged",
+    "PUT /api/orders/{id}/status cancelled (wallet) — customer refunded full total, escrow returns to prior level, tx 'refund', audit 'order.escrow.refund'",
+    "PUT /api/orders/{id}/status cancelled (cash) — no wallet side-effects",
+    "Permissions: super_admin can update any order, foreign vendor blocked with 403",
+    "Phase 1+2 regression — full 25/25 (admin /api/wallet/me HIGH bug from iter_8 confirmed FIXED)"
+  ],
+  "test_report_links": [
+    "/app/backend/tests/test_wallet_phase3_escrow.py",
+    "/app/backend/tests/test_wallet_phase1_2.py",
+    "/app/test_reports/pytest/pytest_wallet_phase3.xml"
+  ],
+  "action_items": [
+    "MEDIUM: routes_order.create_order and checkout_cart return the Pydantic Order with stale payment_status/order_status/confirmed_at on wallet-paid orders. Mutate the Pydantic model (or return order_doc / refetch) so the HTTP response reflects the persisted state.",
+    "Optional: add explicit idempotency in routes_order.update_order_status (return 400 if order_status already final) instead of relying on the wallet_service tx-existence guard.",
+    "Optional: harden checkout_cart against missing vendor.zone with `.get('zone', default)`."
+  ],
+  "critical_code_review_comments": [
+    "routes_order.create_order: response model is `Order` but only order_doc is mutated post-hold — split DB write and response building so they don't drift. This pattern repeats verbatim in checkout_cart (lines ~252-278). Extract a shared `_persist_and_finalise(order, order_doc, db)` helper and DRY both routes.",
+    "routes_order.update_order_status: side-effects (wallet release/refund) run after the order document is already updated to delivered/cancelled. If the wallet leg fails, route stores escrow_release_error/escrow_refund_error on the order — good — but there is NO retry/queue mechanism. A delivered order with escrow_release_error is functionally inconsistent (status=delivered, escrow still held). Consider transactional wrapper or a background reconciliation job.",
+    "wallet_service.release_escrow_to_vendor_and_delivery: idempotency check uses ONLY 'escrow_release_vendor' tx; if vendor_share rounds to 0 (rare but possible: total <= delivery_fee + commission), no escrow_release_vendor row is written and a second call would re-credit commission + delivery. Tighten idempotency by checking audit log 'order.escrow.release' instead.",
+    "wallet_service.refund_escrow_to_customer: order_status check is missing — a route caller could mistakenly call this on an already-delivered order and drain the escrow twice (once via release, once via refund). Add explicit guard: refuse refund if release already done for this order_id.",
+    "routes_order._hold_wallet_for_order: customer lookup uses phone equality — but customers' phones may be stored with country prefix differences (e.g., '690000001' vs '+237690000001'). Spec lists phone='690000001' but customer collection may normalise differently. Add a normalised-phone lookup OR persist customer_id on the order at create time.",
+    "routes_order.create_order: return type is `Order` but the function returns the unmutated object — `response_model_exclude_unset=True` would mask this. Recommend using `Order.model_validate(order_doc)` for the return value to guarantee parity with what was written to DB.",
+    "Phase 1+2 follow-ups from iter_8 (recharge_request not persisted on CAMPAY 502 fail; withdrawal-approve audit on CAMPAY failure) are still NOT fixed in this build — verified by reading the code, not separately re-tested here."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_wallet_phase3_escrow.py (NEW)"
+  ],
+  "success_rate": {"backend": "100% (39/39 — 14 phase3 + 25 phase1_2)", "frontend": "skipped per request"},
+  "test_credentials": {
+    "customer": {"phone": "690000001", "password": "hemeley2024"},
+    "vendor": {"email": "vendeur@hemeley.com", "password": "hemeley2024"},
+    "super_admin": {"email": "admin@hemeley.com", "password": "hemeley2024"}
+  },
+  "seed_data_creation": "Test pre-funds the customer wallet via POST /api/admin/wallets/{id}/adjust before each wallet-paid order, drains it for the insufficient-balance and checkout-insufficient tests. No persistent seed mutation: every released vendor share / commission / refund leaves SYSTEM and vendor wallets in a consistent state. All test orders carry customer_note='TEST_phase3' for easy cleanup.",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Phase 3 escrow lifecycle is fully wired and verified. 39/39 backend tests pass (14 new phase3 + 25 carried-over phase1_2). The single MEDIUM finding is a response-shape bug (HTTP returns stale Pydantic model while DB has the new state) — fixing it is a 3-line edit in routes_order.create_order and checkout_cart. After main agent fixes, re-run: pytest /app/backend/tests/test_wallet_phase3_escrow.py /app/backend/tests/test_wallet_phase1_2.py -v. CAMPAY DEMO 401 errors remain expected for any actual mobile-money calls; tests already accept that path. The previously-flagged HIGH bug (admin /api/wallet/me 500) from iter_8 is FIXED and verified.",
+  "rca of the issue": {
+    "bug": "POST /api/orders/ and POST /api/orders/checkout return payment_status='pending' for wallet-paid orders even though DB stores 'success'.",
+    "root_cause": "In routes_order.py the route mutates `order_doc` (a dict copy) with payment_status='success', order_status='confirmed', confirmed_at=ISO and inserts that into Mongo, but the function then returns the original Pydantic `order` object whose Pydantic defaults are still payment_status='pending' / order_status='pending' / confirmed_at=None.",
+    "reproduction": "1) Pre-fund customer 690000001 wallet via /api/admin/wallets/{id}/adjust delta=10000. 2) POST /api/orders/ with payment_method='wallet' → response shows payment_status:'pending'. 3) GET /api/orders/{id} same id → payment_status:'success'. Test deliberately re-fetches via GET to assert DB state is correct.",
+    "mitigation": "Two-line fix: after `_hold_wallet_for_order(...)` also do `order.payment_status='success'; order.order_status='confirmed'; order.confirmed_at=datetime.now(timezone.utc)`. Or simpler: `return Order.model_validate(order_doc)`."
+  }
+}
