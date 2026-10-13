@@ -10,7 +10,7 @@ import { useCart } from './CartContext';
 import FoodChatBot from './FoodChatBot';
 import HemeleyLogo from './HemeleyLogo';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
 
 const zones = [
@@ -57,12 +57,14 @@ const ModernHomePage = ({ CartButton, CartModal }) => {
   const [searchParams] = useSearchParams();
   const { addToCart, cart } = useCart();
 
-  // Preload query from landing-page hero (?q=... &category=...)
+  // Preload query from landing-page hero (?q=... &category=... &zone=...)
   useEffect(() => {
     const q = searchParams.get('q');
     const cat = searchParams.get('category');
+    const z = searchParams.get('zone');
     if (q) setSearchQuery(q);
     if (cat) setSelectedCategory(cat);
+    if (z) setSelectedZone(z);
   }, [searchParams]);
 
   useEffect(() => {
@@ -79,12 +81,10 @@ const ModernHomePage = ({ CartButton, CartModal }) => {
   const fetchAllMenus = async () => {
     setLoading(true);
     try {
-      const promises = zones.map(z => axios.get(`${API}/menus?zone=${z.id}`).catch(() => ({ data: [] })));
-      const results = await Promise.all(promises);
-      const all = results.flatMap(r => r.data || []);
-      setMenus(all);
+      const res = await axios.get(`${API}/menus`);
+      setMenus(res.data || []);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching menus:', error);
     } finally {
       setLoading(false);
     }
@@ -93,10 +93,10 @@ const ModernHomePage = ({ CartButton, CartModal }) => {
   const fetchMenusByZone = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`${API}/menus?zone=${selectedZone}`);
+      const res = await axios.get(`${API}/menus?zone=${encodeURIComponent(selectedZone)}`);
       setMenus(res.data || []);
     } catch (error) {
-      console.error('Error:', error);
+      console.error('Error fetching menus by zone:', error);
     } finally {
       setLoading(false);
     }
@@ -105,19 +105,33 @@ const ModernHomePage = ({ CartButton, CartModal }) => {
   const filteredMenus = useMemo(() => {
     let result = [...menus];
     
-    // Search filter
+    // Search filter across name, vendor, description, zone, and category
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+      const q = searchQuery.toLowerCase().trim();
       result = result.filter(m => 
-        m.name.toLowerCase().includes(q) || 
-        m.vendor_name?.toLowerCase().includes(q) ||
-        m.description?.toLowerCase().includes(q)
+        (m.name && m.name.toLowerCase().includes(q)) || 
+        (m.vendor_name && m.vendor_name.toLowerCase().includes(q)) ||
+        (m.description && m.description.toLowerCase().includes(q)) ||
+        (m.zone && m.zone.toLowerCase().includes(q)) ||
+        (m.category && m.category.toLowerCase().includes(q))
       );
     }
     
-    // Category filter
+    // Category filter with tolerance for singular/plural
     if (selectedCategory !== 'all') {
-      result = result.filter(m => (m.category || 'plat') === selectedCategory);
+      const targetCat = selectedCategory.toLowerCase();
+      result = result.filter(m => {
+        const cat = (m.category || 'plat').toLowerCase();
+        if (targetCat === 'plat') {
+          return cat === 'plat' || cat === 'plats' || cat === 'entree';
+        }
+        return cat === targetCat;
+      });
+    }
+
+    // Zone filter in-memory fallback
+    if (selectedZone) {
+      result = result.filter(m => m.zone && m.zone.toLowerCase() === selectedZone.toLowerCase());
     }
     
     // Sort
@@ -130,7 +144,7 @@ const ModernHomePage = ({ CartButton, CartModal }) => {
     }
     
     return result;
-  }, [menus, searchQuery, selectedCategory, sortBy]);
+  }, [menus, searchQuery, selectedCategory, selectedZone, sortBy]);
 
   const handleAddToCart = (menu) => {
     // Pass the raw menu object — CartContext.addToCart reads menu.id, menu.name, etc.

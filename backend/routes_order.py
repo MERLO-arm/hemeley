@@ -326,13 +326,11 @@ async def checkout_cart(checkout_data: CheckoutRequest, request: Request, author
             await db.orders.insert_one(order_doc)
 
             # Mobile Money payment: kick off a CAMPAY collect to the customer's phone
-            if order.payment_method in ("orange", "mtn"):
+            if order.payment_method in ("orange", "mtn", "online"):
                 try:
-                    from campay import campay_client
+                    from campay import campay_client, normalize_cm_phone
                     from wallet_security import generate_tx_reference
-                    customer_phone_intl = order.customer_phone
-                    if not customer_phone_intl.startswith("237"):
-                        customer_phone_intl = "237" + customer_phone_intl.lstrip("+").lstrip("0")
+                    customer_phone_intl = normalize_cm_phone(order.customer_phone)
                     ext_ref = generate_tx_reference()
                     campay_resp = await campay_client.initiate_payment(
                         amount=order.total,
@@ -472,7 +470,7 @@ async def order_payment_status(order_id: str, db = Depends(get_db)):
 
     # If CAMPAY transaction is still pending, ask CAMPAY directly
     if (
-        order.get("payment_method") in ("orange", "mtn")
+        order.get("payment_method") in ("orange", "mtn", "online")
         and order.get("campay_reference")
         and (order.get("campay_status") or "").upper() == "PENDING"
     ):
@@ -495,6 +493,30 @@ async def order_payment_status(order_id: str, db = Depends(get_db)):
             logger.warning(f"CAMPAY status poll failed for order {order_id}: {e}")
 
     return response
+
+
+@order_router.post("/{order_id}/simulate-payment-success")
+async def simulate_order_payment_success(order_id: str, db = Depends(get_db)):
+    """Simule la validation réussie d'un paiement Mobile Money (mode démo/test)."""
+    order = await db.orders.find_one({"id": order_id}, {"_id": 0})
+    if not order:
+        raise HTTPException(status_code=404, detail="Commande introuvable")
+
+    now_iso = datetime.now(timezone.utc).isoformat()
+    update_doc = {
+        "payment_status": "success",
+        "order_status": "confirmed",
+        "campay_status": "SUCCESSFUL",
+        "confirmed_at": now_iso,
+        "updated_at": now_iso,
+    }
+    await db.orders.update_one({"id": order_id}, {"$set": update_doc})
+    return {
+        "success": True,
+        "message": "Paiement simulé avec succès",
+        "order_id": order_id,
+        "status": "SUCCESSFUL"
+    }
 
 @order_router.put("/{order_id}/status")
 async def update_order_status(

@@ -23,16 +23,48 @@ import VendorProfileBranding from './VendorProfileBranding';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement, BarElement, Filler);
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+// Détection 100% dynamique et automatique de l'URL en cours dans le navigateur
+const getDynamicAppUrl = () => {
+  if (typeof window !== 'undefined' && window.location) {
+    const origin = window.location.origin;
+    if (origin && origin !== 'null') {
+      return origin;
+    }
+    return `${window.location.protocol}//${window.location.host}`;
+  }
+  return 'http://localhost:3000';
+};
+
+// URL Backend assainie sans aucun reste d'Emergent
+const getSafeBackendUrl = () => {
+  const envUrl = process.env.REACT_APP_BACKEND_URL;
+  if (!envUrl || envUrl.includes('emergentagent.com')) {
+    if (typeof window !== 'undefined' && window.location) {
+      return `${window.location.protocol}//${window.location.hostname}:8000`;
+    }
+    return 'http://localhost:8000';
+  }
+  return envUrl.replace(/\/+$/, '');
+};
+
+const BACKEND_URL = getSafeBackendUrl();
 const API = `${BACKEND_URL}/api`;
-const FRONTEND_URL = process.env.REACT_APP_BACKEND_URL?.replace('/api', '') || window.location.origin;
 
 const VendorDashboard2026 = () => {
   const navigate = useNavigate();
   const [vendor, setVendor] = useState(null);
+  const [customBaseUrl, setCustomBaseUrl] = useState('');
 
-  // Subscribe to real-time wallet/payment events for this vendor
-  useWalletNotifications(vendor?.id || null);
+  // Subscribe to real-time wallet/payment/order events for this vendor
+  useWalletNotifications(vendor?.id || null, {
+    onEvent: (evt) => {
+      if (evt?.event === 'order.placed' || evt?.event === 'order.paid') {
+        if (typeof fetchDataRef.current === 'function') {
+          fetchDataRef.current();
+        }
+      }
+    }
+  });
   const [darkMode, setDarkMode] = useState(true);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -48,6 +80,8 @@ const VendorDashboard2026 = () => {
   const [showTableQRModal, setShowTableQRModal] = useState(false);
   const [selectedTable, setSelectedTable] = useState(1);
   const [tableCount, setTableCount] = useState(10);
+  const [tableTokens, setTableTokens] = useState({});
+  const fetchDataRef = useRef(null);
   const [showKPIModal, setShowKPIModal] = useState(null);
   const [chartPeriod, setChartPeriod] = useState('7d');
   const [editingMenu, setEditingMenu] = useState(null);
@@ -175,6 +209,7 @@ const VendorDashboard2026 = () => {
   }, [navigate, token]);
 
   const fetchData = async () => {
+    fetchDataRef.current = fetchData;
     if (!token) return;
 
     try {
@@ -412,10 +447,59 @@ const VendorDashboard2026 = () => {
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
   };
 
+  const fetchTableTokens = useCallback(async (count) => {
+    const slug = vendor?.slug || vendor?.id;
+    if (!slug) return;
+    try {
+      const promises = [];
+      const newTokens = { ...tableTokens };
+      for (let i = 1; i <= count; i++) {
+        if (!newTokens[i]) {
+          promises.push(
+            axios.get(`${API}/public/table-token?slug=${slug}&table=${i}`)
+              .then(res => { if (res.data?.token) newTokens[i] = res.data.token; })
+              .catch(() => {})
+          );
+        }
+      }
+      if (promises.length > 0) {
+        await Promise.all(promises);
+        setTableTokens({ ...newTokens });
+      }
+    } catch (e) {
+      console.warn('Erreur récupération jetons de table:', e);
+    }
+  }, [vendor, tableTokens]);
+
+  useEffect(() => {
+    if (activeTab === 'qrcodes' && vendor) {
+      fetchTableTokens(tableCount);
+    }
+  }, [activeTab, vendor, tableCount, fetchTableTokens]);
+
+  const getActiveBaseUrl = useCallback(() => {
+    return customBaseUrl.trim() || getDynamicAppUrl();
+  }, [customBaseUrl]);
+
+  const getRestaurantUrl = useCallback(() => {
+    const slug = vendor?.slug || vendor?.id;
+    return `${getActiveBaseUrl()}/menu/${slug}`;
+  }, [vendor, getActiveBaseUrl]);
+
+  const getTableUrl = (tableNum) => {
+    const slug = vendor?.slug || vendor?.id;
+    const token = tableTokens[tableNum];
+    const base = getActiveBaseUrl();
+    if (token) {
+      return `${base}/menu/${slug}?t=${token}`;
+    }
+    return `${base}/menu/${slug}?table=${tableNum}`;
+  };
+
   const copyTableLink = (tableNum) => {
-    const link = `${FRONTEND_URL}/restaurant/${vendor?.id}?table=${tableNum}`;
+    const link = getTableUrl(tableNum);
     navigator.clipboard.writeText(link);
-    toast.success(`Lien Table ${tableNum} copié!`);
+    toast.success(`Lien sécurisé Table ${tableNum} copié !`);
   };
 
   // Chart configs with real data
@@ -546,6 +630,11 @@ const VendorDashboard2026 = () => {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <span className="text-orange-500 font-bold text-xl">#{order.order_number || order.id?.slice(-6)}</span>
+                      {order.table_number && (
+                        <span className="ml-3 px-3 py-1 rounded-full text-xs font-black bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+                          🍽️ TABLE {order.table_number} (Sur place)
+                        </span>
+                      )}
                       <span className={`ml-3 px-3 py-1 rounded-full text-xs font-bold ${
                         order.order_status === 'pending' ? 'bg-yellow-500/20 text-yellow-400 animate-pulse' : 
                         order.order_status === 'confirmed' ? 'bg-blue-500/20 text-blue-400' :
@@ -559,9 +648,19 @@ const VendorDashboard2026 = () => {
                   </div>
                   
                   <div className="flex items-center gap-4 text-gray-400 text-sm mb-4">
-                    <span>{order.customer_name}</span>
-                    <span>•</span>
-                    <span>{order.customer_phone}</span>
+                    <span>{order.table_number ? `Client Table ${order.table_number}` : (order.customer_name || 'Client')}</span>
+                    {order.customer_phone && (
+                      <>
+                        <span>•</span>
+                        <span>{order.customer_phone}</span>
+                      </>
+                    )}
+                    {order.delivery_address && !order.table_number && (
+                      <>
+                        <span>•</span>
+                        <span>📍 {order.delivery_address}</span>
+                      </>
+                    )}
                     <span>•</span>
                     <span>{new Date(order.created_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
@@ -837,8 +936,17 @@ const VendorDashboard2026 = () => {
                           <tr key={order.id} className={`${darkMode ? 'border-b border-slate-800 hover:bg-slate-800/50' : 'border-b border-gray-100 hover:bg-gray-50'} transition-colors`}>
                             <td className="py-4 px-4 font-mono text-orange-500">#{order.order_number || order.id?.slice(-6)}</td>
                             <td className="py-4 px-4">
-                              <p className="font-medium">{order.customer_name}</p>
-                              <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{order.customer_phone}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-medium">{order.customer_name || (order.table_number ? `Client Table ${order.table_number}` : 'Client')}</p>
+                                {order.table_number && (
+                                  <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                    Table {order.table_number}
+                                  </span>
+                                )}
+                              </div>
+                              <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                                {order.table_number ? '🍽️ Sur place' : (order.customer_phone || 'Sans contact')}
+                              </p>
                             </td>
                             <td className="py-4 px-4 font-bold">{order.total?.toLocaleString()} FCFA</td>
                             <td className="py-4 px-4">
@@ -935,8 +1043,17 @@ const VendorDashboard2026 = () => {
                         <tr key={order.id} className={`${darkMode ? 'border-b border-slate-800 hover:bg-slate-800/50' : 'border-b border-gray-100 hover:bg-gray-50'} transition-colors`}>
                           <td className="py-4 px-4 font-mono text-orange-500">#{order.order_number || order.id?.slice(-6)}</td>
                           <td className="py-4 px-4">
-                            <p className="font-medium">{order.customer_name}</p>
-                            <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>{order.customer_phone}</p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium">{order.customer_name || (order.table_number ? `Client Table ${order.table_number}` : 'Client')}</p>
+                              {order.table_number && (
+                                <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                                  Table {order.table_number}
+                                </span>
+                              )}
+                            </div>
+                            <p className={`text-sm ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+                              {order.table_number ? '🍽️ Sur place' : (order.delivery_address ? `📍 ${order.delivery_address.slice(0, 24)}...` : (order.customer_phone || 'Sans contact'))}
+                            </p>
                           </td>
                           <td className="py-4 px-4">
                             <div className="text-sm">
@@ -1144,14 +1261,50 @@ const VendorDashboard2026 = () => {
           {/* QR Codes Tab */}
           {activeTab === 'qrcodes' && (
             <div className="space-y-6">
+              {/* Active URL Detection Banner */}
+              <div className={`p-5 rounded-2xl ${darkMode ? 'bg-slate-900/80 border border-slate-800' : 'bg-orange-50 border border-orange-200'} backdrop-blur-xl flex flex-col md:flex-row md:items-center justify-between gap-4`}>
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-2xl bg-orange-500/20 text-orange-500 font-bold text-xl">🌐</div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-bold text-sm">URL active détectée pour les QR codes :</span>
+                      <span className="font-mono text-xs px-2.5 py-1 rounded-lg bg-orange-500/20 text-orange-400 font-bold border border-orange-500/30">
+                        {getActiveBaseUrl()}
+                      </span>
+                    </div>
+                    <p className={`text-xs mt-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+                      Tous les QR codes encodent automatiquement cette adresse (vos clients arrivent directement sur votre serveur en cours).
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input 
+                    type="text"
+                    placeholder="Personnaliser URL (ex: http://192.168.1.50:3000)"
+                    value={customBaseUrl}
+                    onChange={(e) => setCustomBaseUrl(e.target.value)}
+                    className={`text-xs px-3 py-2 rounded-xl border w-64 ${darkMode ? 'bg-slate-800 border-slate-700 text-white placeholder-gray-500' : 'bg-white border-gray-300 text-gray-900'}`}
+                  />
+                  {customBaseUrl && (
+                    <button 
+                      onClick={() => setCustomBaseUrl('')}
+                      className="text-xs px-3 py-2 rounded-xl bg-gray-500/20 text-gray-400 hover:text-white font-medium"
+                      title="Revenir à l'URL automatique du navigateur"
+                    >
+                      Auto
+                    </button>
+                  )}
+                </div>
+              </div>
+
               {/* Restaurant QR Code */}
               <div className={`p-6 rounded-2xl ${darkMode ? 'bg-slate-900/50 border border-slate-800' : 'bg-white border border-gray-100'} backdrop-blur-xl`}>
-                <h3 className="text-xl font-bold mb-6">QR Code Restaurant</h3>
+                <h3 className="text-xl font-bold mb-6">QR Code Restaurant (Menu public)</h3>
                 <div className="flex flex-col md:flex-row items-center gap-8">
-                  <div className="p-4 bg-white rounded-2xl">
+                  <div className="p-4 bg-white rounded-2xl shadow-md">
                     <QRCodeSVG 
                       id="vendor-qr-code"
-                      value={`${FRONTEND_URL}/restaurant/${vendor?.id}`}
+                      value={getRestaurantUrl()}
                       size={200}
                       level="H"
                       includeMargin={true}
@@ -1162,13 +1315,16 @@ const VendorDashboard2026 = () => {
                       Scannez ce QR code pour accéder directement à votre page restaurant sur HEMELEY.
                       Les clients pourront voir vos menus et commander.
                     </p>
+                    <div className="text-xs font-mono text-gray-400 mb-4 p-2 rounded-lg bg-slate-800/40 border border-slate-700/50 break-all">
+                      {getRestaurantUrl()}
+                    </div>
                     <div className="flex gap-3 flex-wrap">
                       <button onClick={() => downloadQRCode('png')} className={`px-4 py-2 rounded-lg font-medium ${darkMode ? 'bg-slate-800 hover:bg-slate-700' : 'bg-gray-100 hover:bg-gray-200'}`}>
                         <Download size={18} className="inline mr-2" />PNG
                       </button>
                       <button onClick={() => {
-                        navigator.clipboard.writeText(`${FRONTEND_URL}/restaurant/${vendor?.id}`);
-                        toast.success('Lien copié!');
+                        navigator.clipboard.writeText(getRestaurantUrl());
+                        toast.success('Lien restaurant copié !');
                       }} className={`px-4 py-2 rounded-lg font-medium ${darkMode ? 'bg-slate-800 hover:bg-slate-700' : 'bg-gray-100 hover:bg-gray-200'}`}>
                         <Copy size={18} className="inline mr-2" />Copier le lien
                       </button>
@@ -1204,7 +1360,7 @@ const VendorDashboard2026 = () => {
                     <div key={tableNum} className={`p-4 rounded-xl ${darkMode ? 'bg-slate-800/50' : 'bg-gray-50'} text-center`}>
                       <div className="p-2 bg-white rounded-lg inline-block mb-3">
                         <QRCodeSVG 
-                          value={`${FRONTEND_URL}/restaurant/${vendor?.id}?table=${tableNum}`}
+                          value={getTableUrl(tableNum)}
                           size={100}
                           level="M"
                         />
@@ -1477,10 +1633,10 @@ const VendorDashboard2026 = () => {
               </button>
             </div>
             
-            <div className="flex justify-center mb-6">
+            <div className="flex justify-center mb-4">
               <div className="p-4 bg-white rounded-2xl">
                 <QRCodeSVG 
-                  value={`${FRONTEND_URL}/restaurant/${vendor?.id}?table=${selectedTable}`}
+                  value={getTableUrl(selectedTable)}
                   size={250}
                   level="H"
                   includeMargin={true}
@@ -1488,9 +1644,19 @@ const VendorDashboard2026 = () => {
               </div>
             </div>
             
-            <p className={`text-center text-sm mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Les clients qui scannent ce code seront dirigés vers votre menu avec le numéro de table {selectedTable} pré-rempli.
+            <div className="text-center mb-4">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                🔒 Jeton HMAC permanent actif (Tunnel Sur site instantané)
+              </span>
+            </div>
+
+            <p className={`text-center text-sm mb-3 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
+              Les clients scannant ce QR code sur place commanderont directement à la Table {selectedTable} sans saisie d'adresse et sans friction.
             </p>
+
+            <div className="text-xs font-mono text-emerald-400 mb-4 p-2 rounded-xl bg-slate-800/60 border border-slate-700/50 break-all text-center">
+              {getTableUrl(selectedTable)}
+            </div>
             
             <div className="grid grid-cols-2 gap-3">
               <button 

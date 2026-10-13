@@ -282,19 +282,22 @@ const Categories = () => {
       </div>
 
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 sm:gap-6">
-        {CATEGORY_DEFS.map((c) => (
-          <button
-            key={c.key}
-            onClick={() => navigate(`/menu${c.key !== 'all' ? `?category=${c.key}` : ''}`)}
-            className="group flex flex-col items-center gap-3"
-            data-testid={`cat-${c.key}`}
-          >
-            <div className="relative w-full aspect-[3/5] rounded-3xl overflow-hidden shadow-md group-hover:shadow-xl group-hover:-translate-y-1 transition-all">
-              <img src={c.img} alt={c.label} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-            </div>
-            <span className="text-sm sm:text-base font-bold text-slate-800">{c.label}</span>
-          </button>
-        ))}
+        {CATEGORY_DEFS.map((c) => {
+          const targetCat = c.key === 'petit-dej' ? 'petit-dejeuner' : c.key;
+          return (
+            <button
+              key={c.key}
+              onClick={() => navigate(`/menu${targetCat !== 'all' ? `?category=${targetCat}` : ''}`)}
+              className="group flex flex-col items-center gap-3"
+              data-testid={`cat-${c.key}`}
+            >
+              <div className="relative w-full aspect-[3/5] rounded-3xl overflow-hidden shadow-md group-hover:shadow-xl group-hover:-translate-y-1 transition-all">
+                <img src={c.img} alt={c.label} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              </div>
+              <span className="text-sm sm:text-base font-bold text-slate-800">{c.label}</span>
+            </button>
+          );
+        })}
       </div>
     </section>
   );

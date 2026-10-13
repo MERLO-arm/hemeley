@@ -151,13 +151,41 @@ async def _serialize_vendor_public(vendor: dict, hide_identity: bool = False) ->
     }
 
 
+from table_token import generate_table_token, verify_table_token
+
+@public_router.get("/table-token")
+async def get_table_token(slug: str, table_number: str):
+    """Génère un jeton HMAC permanent pour une table spécifique d'un restaurant."""
+    if not slug or not table_number:
+        raise HTTPException(status_code=400, detail="slug et table_number requis")
+    token = generate_table_token(slug, table_number)
+    return {
+        "slug": slug,
+        "table_number": str(table_number),
+        "token": token,
+    }
+
+
+@public_router.get("/verify-table")
+async def verify_table_endpoint(slug: str, t: Optional[str] = None):
+    """Vérifie si le jeton fourni correspond bien à une table sur site pour ce restaurant."""
+    if not t:
+        return {"valid": False, "presence": "remote", "table_number": None}
+    is_valid, table_num = verify_table_token(slug, t)
+    return {
+        "valid": is_valid,
+        "presence": "on_site" if is_valid else "remote",
+        "table_number": table_num,
+    }
+
+
 @public_router.get("/menu/{slug}")
-async def public_menu_by_slug(slug: str, request: Request):
+async def public_menu_by_slug(slug: str, request: Request, t: Optional[str] = None):
     """Page publique d'un restaurant via son slug (QR-code).
 
-    Retourne :
-      - vendor : infos branded (logo, couleur, slogan...)
-      - menus  : tous les menus actifs avec portions > 0
+    Supporte le paramètre de table sécurisé 't' pour la détection de présence :
+      - Si t est valide : présence 'on_site', numéro de table vérifié
+      - Si t est absent ou falsifié : présence 'remote' (à distance)
     """
     db = request.app.state.db
     vendor = await db.vendors.find_one({"slug": slug, "is_active": True}, {"_id": 0, "password_hash": 0})
@@ -172,7 +200,6 @@ async def public_menu_by_slug(slug: str, request: Request):
     # Filter by availability (visibility window + time-of-day rules)
     menus_active: List[dict] = []
     for m in menus_raw:
-        # remaining_portions can be int OR corrupted string from legacy seeds
         try:
             remaining = int(m.get("remaining_portions") or 0)
         except (TypeError, ValueError):
@@ -183,9 +210,18 @@ async def public_menu_by_slug(slug: str, request: Request):
             m["remaining_portions"] = remaining
             menus_active.append(m)
 
+    # Détection de présence via jeton signé HMAC
+    is_table_valid, table_number = verify_table_token(slug, t) if t else (False, None)
+
     return {
         "vendor": await _serialize_vendor_public(vendor, hide_identity=False),
         "menus": menus_active,
+        "table_info": {
+            "is_table": is_table_valid,
+            "presence": "on_site" if is_table_valid else "remote",
+            "table_number": table_number if is_table_valid else None,
+            "token": t if is_table_valid else None,
+        }
     }
 
 
@@ -195,19 +231,30 @@ class PublicOrderItem(BaseModel):
 
 
 class PublicOrderIn(BaseModel):
-    customer_name: str = Field(..., min_length=2)
-    customer_phone: str = Field(..., min_length=8)
+    customer_name: Optional[str] = None
+    customer_phone: Optional[str] = None
+    customer_address: Optional[str] = None
     customer_note: Optional[str] = None
     items: List[PublicOrderItem]
     payment_method: Literal["online", "cash"]
+    table_token: Optional[str] = None
+    table_number: Optional[str] = None
 
 
 @public_router.post("/order/{slug}")
 async def public_order(slug: str, payload: PublicOrderIn, request: Request):
     """Crée une commande depuis la page publique branded.
 
-    - payment_method='cash' : commande enregistrée, paiement à la livraison/caisse
-    - payment_method='online' : ouvre un /collect CamPay et renvoie la reference
+    Branchement logique selon présence (Sur site vs À distance) :
+      1. SUR SITE (table_token HMAC valide) :
+         - Numéro de table extrait et vérifié automatiquement.
+         - Nom et téléphone optionnels (zéro friction).
+         - Adresse désactivée.
+         - Paiement au comptoir/table ou en ligne par Mobile Money.
+      2. À DISTANCE (pas de token ou token invalide) :
+         - Nom et téléphone obligatoires.
+         - Adresse/localisation requise.
+         - Paiement en ligne ou à la livraison (cash).
     """
     db = request.app.state.db
     vendor = await db.vendors.find_one({"slug": slug, "is_active": True}, {"_id": 0})
@@ -216,6 +263,36 @@ async def public_order(slug: str, payload: PublicOrderIn, request: Request):
 
     if not payload.items:
         raise HTTPException(status_code=400, detail="Panier vide")
+
+    # 1. Détection de présence
+    is_on_site = False
+    detected_table = None
+    if payload.table_token:
+        is_valid, tbl = verify_table_token(slug, payload.table_token)
+        if is_valid:
+            is_on_site = True
+            detected_table = tbl
+
+    if is_on_site:
+        # Parcours SUR SITE / PRÉSENTIEL : Friction minimale
+        cust_name = (payload.customer_name or "").strip() or f"Client Table {detected_table}"
+        cust_phone = (payload.customer_phone or "").strip()
+        delivery_address = None
+        order_type = "dine_in"
+        source = "table_qr"
+        order_status = "confirmed" if payload.payment_method == "cash" else "pending"
+    else:
+        # Parcours À DISTANCE : Informations complètes requises
+        cust_name = (payload.customer_name or "").strip()
+        cust_phone = (payload.customer_phone or "").strip()
+        delivery_address = (payload.customer_address or "").strip() or None
+        if not cust_name or len(cust_name) < 2:
+            raise HTTPException(status_code=400, detail="Nom requis pour la commande à distance")
+        if not cust_phone or len(cust_phone) < 8:
+            raise HTTPException(status_code=400, detail="Téléphone valide requis pour la commande à distance")
+        order_type = "delivery"
+        source = "public_qr"
+        order_status = "pending"
 
     # Build order items + verify portions
     order_items = []
@@ -244,21 +321,27 @@ async def public_order(slug: str, payload: PublicOrderIn, request: Request):
             "zone": vendor.get("zone"),
         })
 
-    total = subtotal  # No delivery fee for QR/on-site service
+    total = subtotal  # Pas de frais de livraison pour le QR
 
     order_id = str(uuid.uuid4())
-    order_number = f"QR-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:6].upper()}"
+    order_prefix = f"TABLE-{detected_table}" if is_on_site else "QR"
+    order_number = f"{order_prefix}-{datetime.now(timezone.utc).strftime('%Y%m%d')}-{uuid.uuid4().hex[:5].upper()}"
 
     order_doc = {
         "id": order_id,
         "order_number": order_number,
-        "source": "public_qr",
+        "source": source,
+        "presence": "on_site" if is_on_site else "remote",
+        "table_number": detected_table,
+        "table_token_verified": is_on_site,
+        "order_type": order_type,
         "vendor_id": vendor["id"],
         "vendor_name": vendor["name"],
         "vendor_phone": vendor.get("phone"),
         "zone": vendor.get("zone"),
-        "customer_name": payload.customer_name.strip(),
-        "customer_phone": payload.customer_phone.strip(),
+        "customer_name": cust_name,
+        "customer_phone": cust_phone,
+        "customer_address": delivery_address,
         "customer_note": payload.customer_note,
         "items": order_items,
         "subtotal": subtotal,
@@ -267,9 +350,12 @@ async def public_order(slug: str, payload: PublicOrderIn, request: Request):
         "total": total,
         "payment_method": payload.payment_method,
         "payment_status": "pending",
-        "order_status": "pending",
+        "order_status": order_status,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
+    if order_status == "confirmed":
+        order_doc["confirmed_at"] = datetime.now(timezone.utc).isoformat()
+
     await db.orders.insert_one(order_doc)
 
     # Decrement stock atomically
@@ -285,18 +371,49 @@ async def public_order(slug: str, payload: PublicOrderIn, request: Request):
         "order_number": order_number,
         "total": total,
         "payment_method": payload.payment_method,
+        "presence": "on_site" if is_on_site else "remote",
+        "table_number": detected_table,
+        "order_status": order_status,
     }
 
-    # If online → initiate CamPay collect
+    # Notification temps réel instantanée au Vendeur avec mention claire de la Table
+    try:
+        from realtime import hub
+        alert_payload = {
+            "order_id": order_id,
+            "order_number": order_number,
+            "table_number": detected_table,
+            "presence": "on_site" if is_on_site else "remote",
+            "order_type": order_type,
+            "customer_name": cust_name,
+            "customer_phone": cust_phone,
+            "vendor_id": vendor["id"],
+            "items": [
+                {"name": it["menu_name"], "quantity": it["quantity"], "price": it["price"]}
+                for it in order_items
+            ],
+            "total": total,
+            "payment_method": payload.payment_method,
+            "created_at": order_doc["created_at"],
+        }
+        await hub.notify([vendor["id"]], "order.placed", alert_payload)
+    except Exception as e:
+        logger.error(f"WS emit order.placed failed in public_order: {e}")
+
+    # Si paiement en ligne Mobile Money demandé
     if payload.payment_method == "online":
+        if not cust_phone:
+            raise HTTPException(status_code=400, detail="Numéro de téléphone requis pour le paiement en ligne Mobile Money")
         try:
             from campay import campay_client, normalize_cm_phone
-            ext_ref = f"QR-{order_id[:12]}"
+            from wallet_security import generate_tx_reference
+            clean_phone = normalize_cm_phone(cust_phone)
+            ext_ref = generate_tx_reference()
             campay_resp = await campay_client.initiate_payment(
                 amount=int(total),
-                phone=normalize_cm_phone(payload.customer_phone),
+                phone=clean_phone,
                 external_reference=ext_ref,
-                description=f"HEMELEY QR {order_number}",
+                description=f"HEMELEY {order_number}",
             )
             await db.orders.update_one(
                 {"id": order_id},
@@ -304,16 +421,23 @@ async def public_order(slug: str, payload: PublicOrderIn, request: Request):
                     "campay_reference": campay_resp.get("reference"),
                     "campay_external_reference": ext_ref,
                     "campay_status": "PENDING",
+                    "campay_initiated_at": datetime.now(timezone.utc).isoformat(),
                 }},
             )
             response["campay_reference"] = campay_resp.get("reference")
             response["campay_status"] = "PENDING"
         except HTTPException as e:
-            # CamPay refusé → on garde la commande mais on prévient le client
             await db.orders.update_one(
                 {"id": order_id},
-                {"$set": {"campay_status": "FAILED", "campay_failure_reason": e.detail}},
+                {"$set": {"campay_status": "FAILED", "campay_failure_reason": str(e.detail)}},
             )
-            response["campay_error"] = e.detail
+            response["campay_error"] = str(e.detail)
+        except Exception as e:
+            logger.error(f"CamPay collect error: {e}")
+            await db.orders.update_one(
+                {"id": order_id},
+                {"$set": {"campay_status": "FAILED", "campay_failure_reason": str(e)}},
+            )
+            response["campay_error"] = str(e)
 
     return response

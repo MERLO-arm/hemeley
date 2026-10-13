@@ -34,6 +34,7 @@ const PaymentStatusPage = () => {
   const [attempts, setAttempts] = useState(0);
   const [final, setFinal] = useState(null);                 // 'success' | 'failed' | 'timeout'
   const [error, setError] = useState(null);
+  const [simulating, setSimulating] = useState(false);
   const pollTimer = useRef(null);
   const cartClearedRef = useRef(false);
   const maxAttempts = 60;                                   // 3s × 60 = 3 minutes
@@ -120,6 +121,19 @@ const PaymentStatusPage = () => {
   }, [type, orderId, ref]);
 
   const opLabel = method === 'orange' ? 'Orange Money' : 'MTN Mobile Money';
+
+  const handleSimulateSuccess = async () => {
+    if (!orderId) return;
+    try {
+      setSimulating(true);
+      await axios.post(`${API}/orders/${orderId}/simulate-payment-success`);
+      toast.success('Paiement simulé avec succès ! Mise à jour en cours...');
+    } catch (err) {
+      toast.error(err.response?.data?.detail || 'Erreur lors de la simulation');
+    } finally {
+      setSimulating(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-stone-50 flex flex-col" data-testid="payment-status-page">
@@ -211,6 +225,22 @@ const PaymentStatusPage = () => {
 
             {error && (
               <div className="bg-rose-50 border border-rose-200 rounded-2xl p-3 text-sm text-rose-700">{error}</div>
+            )}
+
+            {/* Test/Demo Simulation Button */}
+            {type === 'order' && orderId && !final && (
+              <div className="p-3 bg-purple-50/80 border border-dashed border-purple-200 rounded-2xl text-center">
+                <p className="text-xs text-purple-700 mb-2 font-medium">Mode Test CamPay Sandbox</p>
+                <button
+                  type="button"
+                  onClick={handleSimulateSuccess}
+                  disabled={simulating}
+                  className="px-4 py-2 text-xs font-bold rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-sm transition-all inline-flex items-center gap-2"
+                >
+                  {simulating ? <RefreshCw size={12} className="animate-spin" /> : '🧪'}
+                  <span>Simuler validation paiement (Mode Test)</span>
+                </button>
+              </div>
             )}
 
             {/* Actions */}

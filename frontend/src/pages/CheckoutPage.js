@@ -580,6 +580,23 @@ const CheckoutPage = () => {
                   </div>
                   <div className="w-10 h-10 bg-yellow-400 rounded-lg flex items-center justify-center text-black font-bold">MM</div>
                 </label>
+
+                <label className={`flex items-center gap-4 p-4 border-2 rounded-xl cursor-pointer transition-all ${formData.payment_method === 'cash' ? 'border-primary bg-primary/5' : 'border-stone-200 hover:border-primary/50'}`}>
+                  <input
+                    data-testid="checkout-payment-cash"
+                    type="radio"
+                    name="payment_method"
+                    value="cash"
+                    checked={formData.payment_method === 'cash'}
+                    onChange={(e) => setFormData({ ...formData, payment_method: e.target.value })}
+                    className="w-5 h-5 accent-primary"
+                  />
+                  <div className="flex-1">
+                    <p className="font-body font-bold text-text">Paiement à la livraison (Espèces)</p>
+                    <p className="font-body text-sm text-text-muted">Réglez en cash directement au livreur</p>
+                  </div>
+                  <div className="w-10 h-10 bg-emerald-500 rounded-lg flex items-center justify-center text-white font-bold text-lg">💵</div>
+                </label>
               </div>
             </div>
 

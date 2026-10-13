@@ -3,7 +3,7 @@ import React, { useEffect } from 'react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import L from 'leaflet';
 
-export const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+export const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 export const API = `${BACKEND_URL}/api`;
 
 // Douala city center coordinates

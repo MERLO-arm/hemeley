@@ -6,12 +6,18 @@
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 
-const WS_BASE = (process.env.REACT_APP_BACKEND_URL || '')
-  .replace(/^http:/, 'ws:')
-  .replace(/^https:/, 'wss:');
+const getWsBase = () => {
+  const envUrl = process.env.REACT_APP_BACKEND_URL;
+  const raw = (!envUrl || envUrl.includes('emergentagent.com'))
+    ? (typeof window !== 'undefined' ? `${window.location.protocol === 'https:' ? 'https:' : 'http:'}//${window.location.hostname}:8000` : 'http://localhost:8000')
+    : envUrl;
+  return raw.replace(/^http:/, 'ws:').replace(/^https:/, 'wss:');
+};
+const WS_BASE = getWsBase();
 
 const EVENT_META = {
   'wallet.recharge.success': { icon: '💰', kind: 'success' },
+  'order.placed':            { icon: '🔔', kind: 'success' },
   'order.paid':              { icon: '🍽️', kind: 'success' },
   'order.refunded':          { icon: '↩️', kind: 'info' },
   'escrow.released':         { icon: '✅', kind: 'success' },

@@ -58,13 +58,30 @@ def compress_image(image_base64: str, max_size: int = 800) -> str:
 
 @menu_router.get("/", response_model=list[Menu])
 @menu_router.get("", response_model=list[Menu])  # Without trailing slash
-async def get_menus(zone: str = None, db = Depends(get_db)):
-    """Get all active menus, optionally filtered by zone"""
+async def get_menus(
+    zone: str = None,
+    category: str = None,
+    q: str = None,
+    db = Depends(get_db)
+):
+    """Get all active menus, optionally filtered by zone, category, or search query."""
+    import re
     query = {"is_active": True}
-    if zone:
-        query["zone"] = zone
+    if zone and zone.strip() and zone.strip().lower() != "all":
+        query["zone"] = {"$regex": f"^{re.escape(zone.strip())}$", "$options": "i"}
+    if category and category.strip() and category.strip().lower() != "all":
+        query["category"] = {"$regex": f"^{re.escape(category.strip())}$", "$options": "i"}
+    if q and q.strip():
+        search_regex = {"$regex": re.escape(q.strip()), "$options": "i"}
+        query["$or"] = [
+            {"name": search_regex},
+            {"description": search_regex},
+            {"vendor_name": search_regex},
+            {"zone": search_regex},
+            {"category": search_regex},
+        ]
     
-    menus = await db.menus.find(query, {"_id": 0}).to_list(100)
+    menus = await db.menus.find(query, {"_id": 0}).to_list(200)
     
     # Filter by availability
     available_menus = [menu for menu in menus if is_menu_available(menu)]

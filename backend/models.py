@@ -212,9 +212,12 @@ class Order(BaseModel):
     confirmed_at: Optional[datetime] = None
     delivered_at: Optional[datetime] = None
     
-    # Dine-in (table)
+    # Dine-in (table) & Presence
     table_number: Optional[str] = None
     order_type: Literal["delivery", "dine_in", "takeaway"] = "delivery"
+    presence: Literal["on_site", "remote"] = "remote"
+    table_token_verified: bool = False
+    source: Optional[str] = "app"
 
     # Notes
     customer_note: Optional[str] = None
@@ -232,6 +235,9 @@ class OrderCreate(BaseModel):
     payment_method: str
     table_number: Optional[str] = None
     order_type: Literal["delivery", "dine_in", "takeaway"] = "delivery"
+    presence: Optional[Literal["on_site", "remote"]] = None
+    table_token: Optional[str] = None
+    source: Optional[str] = None
     customer_note: Optional[str] = None
 
 class OrderStatusUpdate(BaseModel):
