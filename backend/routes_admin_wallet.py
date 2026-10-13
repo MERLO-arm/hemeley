@@ -197,7 +197,8 @@ async def approve_withdrawal(
         )
         campay_ref = campay_resp.get("reference")
     except Exception as e:
-        logger.error(f"CAMPAY withdrawal payout failed: {e}", exc_info=True)
+        err_msg = e.detail if isinstance(e, HTTPException) else str(e)
+        logger.error(f"CAMPAY withdrawal payout failed: {err_msg}", exc_info=True)
         # Refund the held amount back to wallet immediately
         wallet = await db.wallets.find_one({"user_id": wd["user_id"], "role": wd["role"]}, {"_id": 0})
         if wallet:
@@ -207,22 +208,22 @@ async def approve_withdrawal(
                 tx_type="withdrawal_reject",
                 amount=float(wd["amount"]),
                 to_wallet=wallet,
-                description="Échec payout CAMPAY — remboursement",
+                description=f"Échec payout CAMPAY - remboursement ({err_msg})",
                 initiated_by=user["id"],
                 initiated_role=user["role"],
             )
         await db.withdrawal_requests.update_one(
             {"id": wd_id},
-            {"$set": {"status": "failed", "rejection_reason": str(e)}},
+            {"$set": {"status": "failed", "rejection_reason": err_msg}},
         )
         await write_audit(
             db,
             actor_id=user["id"], actor_role=user["role"],
             action="withdrawal.approve.failed",
             target_user_id=wd["user_id"], target_resource=wd_id,
-            details={"amount": wd["amount"], "error": str(e)},
+            details={"amount": wd["amount"], "error": err_msg},
         )
-        raise HTTPException(status_code=502, detail=f"Échec CAMPAY: {e}")
+        raise HTTPException(status_code=502, detail=f"Échec CAMPAY: {err_msg}")
 
     await db.withdrawal_requests.update_one(
         {"id": wd_id},

@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Request, Header
 from pydantic import BaseModel, Field
 from motor.motor_asyncio import AsyncIOMotorDatabase
 from models import OrderCreate, Order, Transaction, PaymentInitiate, PaymentWebhook
-from campay import campay_client, normalize_cm_phone
+from campay import campay_client, normalize_cm_phone, detect_carrier, validate_payment_inputs, CAMPAY_ERROR_CODES
 from utils import calculate_distance, calculate_delivery_fee
 from datetime import datetime, timezone
 from typing import Optional
@@ -118,6 +118,48 @@ async def campay_status(reference: str, request: Request):
         "external_reference": cstatus.get("external_reference"),
         "reason": cstatus.get("reason"),
     }
+
+
+@campay_router.get("/campay/holder_info")
+async def campay_holder_info(phone_number: str):
+    """GET /api/holder_info/?phone_number=...
+    Vérifie le titulaire d'un compte Mobile Money (MTN / Orange) avant d'initier un paiement ou un retrait.
+    """
+    return await campay_client.get_holder_info(phone_number)
+
+
+class MassPayoutDetailIn(BaseModel):
+    phone_number: str
+    amount: int = Field(..., ge=1, description="Montant entier en XAF sans décimales")
+    description: Optional[str] = "Paiement HEMELEY"
+    external_reference: Optional[str] = None
+
+
+class MassPayoutIn(BaseModel):
+    comment: Optional[str] = "HEMELEY Mass Payout"
+    mp_reference: Optional[str] = None
+    details: list[MassPayoutDetailIn]
+
+
+@campay_router.post("/campay/mass_payout")
+async def campay_mass_payout(payload: MassPayoutIn):
+    """POST /api/mass_payout/
+    Exécute des paiements groupés / retraits en masse vers plusieurs numéros Mobile Money.
+    """
+    raw_details = [d.model_dump() for d in payload.details]
+    return await campay_client.initiate_mass_payout(
+        details=raw_details,
+        comment=payload.comment or "",
+        mp_reference=payload.mp_reference or "",
+    )
+
+
+@campay_router.get("/campay/mass_payout_status/{reference}")
+async def campay_mass_payout_status(reference: str):
+    """GET /api/mass_payout_status/(reference)/
+    Consulte le statut d'un paiement de masse (PENDING, PROCESSING, COMPLETED).
+    """
+    return await campay_client.get_mass_payout_status(reference)
 
 @payment_router.post("/campay/initiate")
 async def initiate_campay_payment(payment_data: PaymentInitiate, db = Depends(get_db)):
