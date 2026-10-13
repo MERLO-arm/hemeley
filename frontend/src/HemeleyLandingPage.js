@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import HemeleyLogo from './HemeleyLogo';
 import FoodChatBot from './FoodChatBot';
+import SEO from './components/SEO';
 import { API } from './MapUtils';
 import { useCart } from './CartContext';
 
@@ -584,6 +585,11 @@ const HemeleyLandingPage = () => {
 
   return (
     <div className="min-h-screen bg-white" data-testid="hemeley-landing">
+      <SEO
+        title="Accueil - Street Food & Commande sur Table"
+        description="Découvrez les meilleurs restaurants et street food de Douala. Commande en ligne ou à table sans contact par QR code, paiement Orange Money & MTN MoMo."
+        path="/"
+      />
       <LandingHeader onOpenMenu={() => setMenuOpen(true)} />
       <Hero />
       <Categories />

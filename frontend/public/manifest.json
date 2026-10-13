@@ -1,12 +1,17 @@
 {
   "short_name": "HEMELEY",
-  "name": "HEMELEY - Le goût du risque",
-  "description": "Plateforme de découverte et commande de street food à Douala",
+  "name": "HEMELEY - Street Food & Commande sur Table à Douala",
+  "description": "Découvrez et commandez les meilleures spécialités street food de Douala. Commande en ligne ou sur place via QR code de table. Paiements Orange Money & MTN MoMo.",
   "icons": [
     {
       "src": "/favicon.ico",
-      "sizes": "64x64 32x32 24x24 16x16",
+      "sizes": "32x32",
       "type": "image/x-icon"
+    },
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
     },
     {
       "src": "/logo192.png",
@@ -24,10 +29,10 @@
   "start_url": "/",
   "display": "standalone",
   "theme_color": "#FF6B00",
-  "background_color": "#FFF8F0",
-  "orientation": "portrait",
+  "background_color": "#0F172A",
+  "orientation": "portrait-primary",
   "scope": "/",
-  "lang": "fr",
+  "lang": "fr-CM",
   "categories": ["food", "lifestyle", "shopping"],
   "prefer_related_applications": false
 }

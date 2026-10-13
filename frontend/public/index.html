@@ -1,33 +1,124 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="fr" dir="ltr">
   <head>
     <meta charset="utf-8" />
-    <link rel="icon" href="%PUBLIC_URL%/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+
+    <!-- SEO Titre Principal & Meta Description -->
+    <title>Hemeley | Street Food, Saveurs & Commande à Table à Douala</title>
+    <meta name="description" content="Découvrez et commandez la meilleure street food à Douala (Bonapriso, Bonanjo, Akwa). Commande express à table sans contact par QR code ou livraison rapide. Paiement Orange Money &amp; MTN MoMo." />
+    <meta name="keywords" content="street food douala, restaurant douala, commande qr code table, livraison repas douala, ndole, poisson braise, soya cameroun, bonapriso food, campay momo, bonanjo restaurant, akwa restaurant" />
+    <meta name="author" content="HEMELEY Inc." />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
+
+    <!-- URL Canonique -->
+    <link rel="canonical" href="https://hemeley.vercel.app/" />
+
+    <!-- Géolocalisation & Référencement Local (Douala, Littoral, Cameroun) -->
+    <meta name="geo.region" content="CM-LT" />
+    <meta name="geo.placename" content="Douala" />
+    <meta name="geo.position" content="4.051056;9.767869" />
+    <meta name="ICBM" content="4.051056, 9.767869" />
+
+    <!-- PWA & Mobile Icons -->
     <meta name="theme-color" content="#FF6B00" />
-    <meta name="description" content="HEMELEY - Les saveurs qui font vibrer 😋🍛. Plateforme de découverte et commande de street food à Douala (Bonapriso, Bonanjo)" />
-    <meta name="keywords" content="street food, douala, bonapriso, bonanjo, cameroun, nourriture, food, hemeley" />
-    
-    <!-- PWA Meta Tags -->
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="HEMELEY" />
-    
-    <!-- Open Graph Meta Tags -->
-    <meta property="og:title" content="HEMELEY - Les saveurs qui font vibrer 😋🍛" />
-    <meta property="og:description" content="Découvrez et commandez de la street food locale " />
-    <meta property="og:type" content="website" />
-    <meta property="og:locale" content="fr_FR" />
-    
-    <link rel="apple-touch-icon" href="%PUBLIC_URL%/logo192.png" />
+    <link rel="icon" type="image/svg+xml" href="%PUBLIC_URL%/favicon.svg" />
+    <link rel="alternate icon" href="%PUBLIC_URL%/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="192x192" href="%PUBLIC_URL%/logo192.png" />
     <link rel="manifest" href="%PUBLIC_URL%/manifest.json" />
-    
+
+    <!-- Open Graph / Facebook / WhatsApp / iMessage Previews -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Hemeley" />
+    <meta property="og:title" content="Hemeley | Street Food d'Exception &amp; Commande sur Table à Douala" />
+    <meta property="og:description" content="Commandez vos plats locaux préférés en livraison ou directement à table via QR code à Douala (Bonapriso, Bonanjo, Akwa)." />
+    <meta property="og:url" content="https://hemeley.vercel.app/" />
+    <meta property="og:image" content="https://hemeley.vercel.app/og-image.png" />
+    <meta property="og:image:secure_url" content="https://hemeley.vercel.app/og-image.png" />
+    <meta property="og:image:type" content="image/png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Hemeley - Street Food &amp; Commande sur Table à Douala" />
+    <meta property="og:locale" content="fr_CM" />
+    <meta property="og:locale:alternate" content="fr_FR" />
+
+    <!-- Twitter Card Previews -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Hemeley | Street Food d'Exception &amp; Commande sur Table à Douala" />
+    <meta name="twitter:description" content="Commandez vos plats locaux préférés en livraison ou directement à table via QR code à Douala." />
+    <meta name="twitter:image" content="https://hemeley.vercel.app/og-image.png" />
+    <meta name="twitter:image:alt" content="Hemeley - Street Food à Douala" />
+
+    <!-- Données Structurées Schema.org (JSON-LD) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "WebSite",
+          "@id": "https://hemeley.vercel.app/#website",
+          "url": "https://hemeley.vercel.app/",
+          "name": "Hemeley",
+          "description": "Plateforme de découverte culinaire et commande de street food à Douala",
+          "inLanguage": "fr-CM",
+          "potentialAction": {
+            "@type": "SearchAction",
+            "target": "https://hemeley.vercel.app/menu?search={search_term_string}",
+            "query-input": "required name=search_term_string"
+          }
+        },
+        {
+          "@type": "Organization",
+          "@id": "https://hemeley.vercel.app/#organization",
+          "name": "Hemeley",
+          "url": "https://hemeley.vercel.app/",
+          "logo": {
+            "@type": "ImageObject",
+            "url": "https://hemeley.vercel.app/og-image.png",
+            "width": 1200,
+            "height": 630
+          },
+          "contactPoint": {
+            "@type": "ContactPoint",
+            "contactType": "customer service",
+            "areaServed": "CM",
+            "availableLanguage": ["French", "English"]
+          }
+        },
+        {
+          "@type": "FoodEstablishment",
+          "@id": "https://hemeley.vercel.app/#foodestablishment",
+          "name": "Hemeley - Street Food Douala",
+          "image": "https://hemeley.vercel.app/og-image.png",
+          "servesCuisine": ["Camerounaise", "Africaine", "Street Food", "Grillades"],
+          "priceRange": "1000 - 10000 XAF",
+          "paymentAccepted": "Orange Money, MTN Mobile Money, Cash",
+          "currenciesAccepted": "XAF",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Douala",
+            "addressRegion": "Littoral",
+            "addressCountry": "CM"
+          },
+          "geo": {
+            "@type": "GeoCoordinates",
+            "latitude": 4.051056,
+            "longitude": 9.767869
+          },
+          "hasMenu": "https://hemeley.vercel.app/menu"
+        }
+      ]
+    }
+    </script>
+
     <!-- CAMPAY SDK -->
     <script id="campay-sdk"></script>
-    
-    <title>HEMELEY - Les saveurs qui font vibrer 😋🍛</title>
-    
+
     <style>
       body {
         margin: 0;
@@ -37,19 +128,17 @@
     </style>
   </head>
   <body>
-    <noscript>Vous devez activer JavaScript pour utiliser cette application.</noscript>
-    
+    <noscript>Vous devez activer JavaScript pour utiliser l'application HEMELEY.</noscript>
+
     <div id="root"></div>
-    
+
     <script>
-      // Service Worker DISABLED: the previous SW cached stale dev bundles and
-      // caused infinite reload loops. Actively unregister any existing
-      // registration so users cached on the old version recover automatically.
+      // Nettoyage proactif de tout ancien service worker mis en cache
       if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then((regs) => {
-          regs.forEach((r) => r.unregister());
-        }).catch(() => {});
+        navigator.serviceWorker.getRegistrations().then(function(regs) {
+          regs.forEach(function(r) { r.unregister(); });
+        }).catch(function() {});
       }
     </script>
-  <script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a496f6668d2c7492',t:'MTc5MTgxNzEwNA=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+  </body>
 </html>

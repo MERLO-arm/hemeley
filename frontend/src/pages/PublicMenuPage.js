@@ -9,6 +9,7 @@ import {
 import CoverCarousel from '../components/CoverCarousel';
 import CategorizedMenuList from '../components/CategorizedMenuList';
 import HemeleyLogo from '../HemeleyLogo';
+import SEO from '../components/SEO';
 
 const API = (process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000') + '/api';
 
@@ -82,6 +83,41 @@ const PublicMenuPage = () => {
 
   return (
     <div className="min-h-screen bg-stone-50" data-testid="public-menu-page">
+      <SEO
+        title={`${vendor.business_name || vendor.name || 'Restaurant'} - Menu & Commande`}
+        description={vendor.description || `Découvrez le menu de ${vendor.business_name || vendor.name} à Douala (${vendor.quarter || 'Bonapriso'}). Commandez vos plats préférés sur place ou à emporter.`}
+        path={`/menu/${slug}`}
+        image={vendor.cover_image || vendor.avatar_url || 'https://hemeley.vercel.app/og-image.png'}
+        type="restaurant.menu"
+        structuredData={{
+          "@context": "https://schema.org",
+          "@type": "Restaurant",
+          "name": vendor.business_name || vendor.name,
+          "description": vendor.description || "Restaurant et street food à Douala",
+          "servesCuisine": "Street Food, Camerounaise",
+          "address": {
+            "@type": "PostalAddress",
+            "addressLocality": "Douala",
+            "addressRegion": vendor.quarter || "Littoral",
+            "addressCountry": "CM"
+          },
+          "hasMenu": {
+            "@type": "Menu",
+            "name": `Menu ${vendor.business_name || vendor.name}`,
+            "hasMenuItem": (menus || []).slice(0, 15).map((m) => ({
+              "@type": "MenuItem",
+              "name": m.name,
+              "description": m.description || m.name,
+              "offers": {
+                "@type": "Offer",
+                "price": m.price,
+                "priceCurrency": "XAF"
+              }
+            }))
+          }
+        }}
+      />
+
       {/* Top Brand Navbar with Hemeley Logo */}
       <header className="bg-white/95 backdrop-blur-md border-b border-stone-200 sticky top-0 z-40 px-4 py-2.5 shadow-xs">
         <div className="max-w-3xl mx-auto flex items-center justify-between">

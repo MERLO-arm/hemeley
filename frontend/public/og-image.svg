@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B1120" />
+      <stop offset="50%" stop-color="#0F172A" />
+      <stop offset="100%" stop-color="#1E1B18" />
+    </linearGradient>
+    <radialGradient id="glowOrange" cx="20%" cy="30%" r="50%">
+      <stop offset="0%" stop-color="#FF6B00" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#FF6B00" stop-opacity="0" />
+    </radialGradient>
+    <radialGradient id="glowRight" cx="85%" cy="75%" r="50%">
+      <stop offset="0%" stop-color="#EA580C" stop-opacity="0.25" />
+      <stop offset="100%" stop-color="#EA580C" stop-opacity="0" />
+    </radialGradient>
+    <linearGradient id="cardGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B" stop-opacity="0.9" />
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0.9" />
+    </linearGradient>
+    <linearGradient id="orangeAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FF7A1A" />
+      <stop offset="100%" stop-color="#FF5500" />
+    </linearGradient>
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="20" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+  </defs>
+
+  <style>
+    .font-sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    .brand-title { font-weight: 900; letter-spacing: -1.5px; }
+    .headline { font-weight: 800; letter-spacing: -0.5px; line-height: 1.15; }
+    .subtitle { font-weight: 400; line-height: 1.4; }
+    .pill-text { font-weight: 700; font-size: 19px; }
+  </style>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="url(#bgGrad)" />
+  <rect width="1200" height="630" fill="url(#glowOrange)" />
+  <rect width="1200" height="630" fill="url(#glowRight)" />
+
+  <!-- Top Logo Bar -->
+  <g transform="translate(80, 70)">
+    <!-- H Badge -->
+    <rect x="0" y="0" width="76" height="76" rx="20" fill="#0F172A" stroke="#334155" stroke-width="2" />
+    <path d="M 22 20 L 32 20 L 32 35 L 48 35 L 48 20 L 58 20 L 58 60 L 48 60 L 48 44 L 32 44 L 32 60 L 22 60 Z" fill="url(#orangeAccent)" />
+    <circle cx="68" cy="10" r="8" fill="#FF6B00" stroke="#FFFFFF" stroke-width="2.5" />
+
+    <!-- Wordmark -->
+    <text x="96" y="55" class="font-sans brand-title" font-size="52" fill="#FFFFFF">
+      Heme<tspan fill="#FF6B00">ley</tspan>
+    </text>
+
+    <!-- Location Pill -->
+    <g transform="translate(820, 10)">
+      <rect x="0" y="0" width="220" height="48" rx="24" fill="#1E293B" stroke="#334155" stroke-width="1.5" />
+      <text x="110" y="30" class="font-sans" font-size="16" font-weight="600" fill="#FDBA74" text-anchor="middle">
+        📍 Douala, Cameroun
+      </text>
+    </g>
+  </g>
+
+  <!-- Main Headline Block -->
+  <g transform="translate(80, 200)">
+    <text x="0" y="45" class="font-sans headline" font-size="54" fill="#FFFFFF">
+      Street Food d'Exception &amp;
+    </text>
+    <text x="0" y="110" class="font-sans headline" font-size="54" fill="url(#orangeAccent)">
+      Commande sur Table à Douala
+    </text>
+
+    <text x="0" y="175" class="font-sans subtitle" font-size="24" fill="#CBD5E1">
+      Flashez le QR code de table au restaurant ou commandez en livraison express.
+    </text>
+    <text x="0" y="210" class="font-sans subtitle" font-size="22" fill="#94A3B8">
+      Ndolè, Poisson braisé, Soya, Burgers • Bonapriso, Bonanjo, Akwa.
+    </text>
+  </g>
+
+  <!-- Feature Pills -->
+  <g transform="translate(80, 470)">
+    <!-- Pill 1: QR Code -->
+    <g transform="translate(0, 0)">
+      <rect x="0" y="0" width="245" height="58" rx="16" fill="url(#cardGrad)" stroke="#334155" stroke-width="1.5" filter="url(#cardShadow)"/>
+      <text x="122" y="36" class="font-sans pill-text" fill="#FFFFFF" text-anchor="middle">
+        📱 Scan QR Table
+      </text>
+    </g>
+
+    <!-- Pill 2: Saveurs Authentiques -->
+    <g transform="translate(265, 0)">
+      <rect x="0" y="0" width="245" height="58" rx="16" fill="url(#cardGrad)" stroke="#334155" stroke-width="1.5" filter="url(#cardShadow)"/>
+      <text x="122" y="36" class="font-sans pill-text" fill="#FFFFFF" text-anchor="middle">
+        🍲 Saveurs Locales
+      </text>
+    </g>
+
+    <!-- Pill 3: Livraison Express -->
+    <g transform="translate(530, 0)">
+      <rect x="0" y="0" width="245" height="58" rx="16" fill="url(#cardGrad)" stroke="#334155" stroke-width="1.5" filter="url(#cardShadow)"/>
+      <text x="122" y="36" class="font-sans pill-text" fill="#FFFFFF" text-anchor="middle">
+        ⚡ Livraison Rapide
+      </text>
+    </g>
+
+    <!-- Pill 4: Mobile Money -->
+    <g transform="translate(795, 0)">
+      <rect x="0" y="0" width="245" height="58" rx="16" fill="url(#cardGrad)" stroke="#EA580C" stroke-width="1.5" filter="url(#cardShadow)"/>
+      <text x="122" y="36" class="font-sans pill-text" fill="#FFEDD5" text-anchor="middle">
+        💳 Orange &amp; MoMo
+      </text>
+    </g>
+  </g>
+
+  <!-- Bottom URL / Brand line -->
+  <line x1="80" y1="565" x2="1120" y2="565" stroke="#1E293B" stroke-width="1.5" />
+  <g transform="translate(80, 595)">
+    <text x="0" y="0" class="font-sans" font-size="16" font-weight="600" fill="#64748B">
+      HEMELEY Inc. • Plateforme Culinaire &amp; Restauration
+    </text>
+    <text x="1040" y="0" class="font-sans" font-size="16" font-weight="700" fill="#FF6B00" text-anchor="end">
+      https://hemeley.vercel.app
+    </text>
+  </g>
+</svg>

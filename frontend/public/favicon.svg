@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <linearGradient id="badgeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B" />
+      <stop offset="100%" stop-color="#0F172A" />
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF7A1A" />
+      <stop offset="100%" stop-color="#FF5500" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#000000" flood-opacity="0.25"/>
+    </filter>
+  </defs>
+
+  <!-- Dark Slate Background with Rounded Corners -->
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#badgeGrad)" filter="url(#shadow)" stroke="#334155" stroke-width="2"/>
+
+  <!-- Stylized Bold 'H' in Orange -->
+  <path d="M 38 34 L 52 34 L 52 56 L 76 56 L 76 34 L 90 34 L 90 94 L 76 94 L 76 70 L 52 70 L 52 94 L 38 94 Z" fill="url(#orangeGrad)"/>
+
+  <!-- Orange Dot Accent at Top-Right -->
+  <circle cx="100" cy="24" r="12" fill="url(#orangeGrad)" stroke="#FFFFFF" stroke-width="3.5"/>
+</svg>

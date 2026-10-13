@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import HemeleyLogo from './HemeleyLogo';
+import SEO from './components/SEO';
 import { 
   ChevronRight, Star, Package, Users, BarChart3, QrCode, 
   Clock, CreditCard, Bell, Settings, FileText, MessageSquare,
@@ -109,6 +110,11 @@ const VendorLandingPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-orange-50 to-white">
+      <SEO
+        title="Devenir Partenaire Restaurateur & Digitaliser ses Ventes"
+        description="Rejoignez Hemeley à Douala. Équipez votre établissement de QR codes de table, recevez des commandes en ligne et encaissez directement via Orange Money & MTN MoMo."
+        path="/vendor"
+      />
       {/* Header */}
       <header className="sticky top-0 bg-white/90 backdrop-blur-md z-50 border-b border-orange-100">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

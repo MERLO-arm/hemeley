@@ -9,6 +9,7 @@ import { toast } from 'sonner';
 import { useCart } from './CartContext';
 import FoodChatBot from './FoodChatBot';
 import HemeleyLogo from './HemeleyLogo';
+import SEO from './components/SEO';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
 const API = `${BACKEND_URL}/api`;
@@ -174,6 +175,11 @@ const ModernHomePage = ({ CartButton, CartModal }) => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEO
+        title="Tous les Menus & Restaurants à Douala"
+        description="Explorez tous les restaurants, grillades, burgers et spécialités locales à Douala (Bonapriso, Akwa, Bonanjo). Livraison express ou commande sur place."
+        path="/menu"
+      />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">

@@ -1,0 +1,43 @@
+# ========================================================
+# HEMELEY - Plateforme Street Food & Restauration à Douala
+# Site officiel : https://hemeley.vercel.app
+# ========================================================
+
+User-agent: *
+
+# Autoriser l'exploration des pages publiques
+Allow: /
+Allow: /menu
+Allow: /menu/*
+Allow: /plat/*
+Allow: /restaurant/*
+Allow: /vendeur/*
+Allow: /vendor$
+Allow: /favicon.ico
+Allow: /favicon.svg
+Allow: /og-image.png
+Allow: /og-image.svg
+Allow: /manifest.json
+
+# Interdire l'exploration des dashboards privés et transactions
+Disallow: /vendor/dashboard
+Disallow: /vendor/dashboard/*
+Disallow: /vendor/add-menu
+Disallow: /client/dashboard
+Disallow: /client/dashboard/*
+Disallow: /client/messages
+Disallow: /client/messages/*
+Disallow: /delivery/dashboard
+Disallow: /delivery/dashboard/*
+Disallow: /admin/
+Disallow: /admin/*
+Disallow: /checkout
+Disallow: /payment-status
+Disallow: /payment-success
+Disallow: /confirmation/
+Disallow: /confirmation/*
+Disallow: /api/
+
+# Déclaration du Sitemap pour l'indexation complète
+Sitemap: https://hemeley.vercel.app/sitemap.xml
+Host: https://hemeley.vercel.app
