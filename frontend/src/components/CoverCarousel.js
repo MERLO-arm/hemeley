@@ -49,9 +49,15 @@ const CoverCarousel = ({
         style={{ background: fallbackGradient || `linear-gradient(135deg, ${brandColor} 0%, #1a1a1a 100%)` }}
         data-testid={`${testid}-empty`}
       >
-        {logo && (
-          <div className="absolute inset-0 flex items-center justify-center opacity-30">
-            <img src={logo} alt="" className="w-24 h-24 rounded-2xl object-cover" />
+        {logo ? (
+          <div className="absolute inset-0 flex items-center justify-center z-10">
+            <div className="p-2.5 bg-white/20 backdrop-blur-md rounded-3xl shadow-2xl ring-1 ring-white/30">
+              <img src={logo} alt="" className="w-24 h-24 rounded-2xl object-cover" />
+            </div>
+          </div>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center opacity-25 text-white text-5xl">
+            🍽️
           </div>
         )}
         <div className="absolute inset-0 bg-black/25" />

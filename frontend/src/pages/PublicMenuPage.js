@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import CoverCarousel from '../components/CoverCarousel';
 import CategorizedMenuList from '../components/CategorizedMenuList';
+import HemeleyLogo from '../HemeleyLogo';
 
 const API = (process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000') + '/api';
 
@@ -81,9 +82,30 @@ const PublicMenuPage = () => {
 
   return (
     <div className="min-h-screen bg-stone-50" data-testid="public-menu-page">
+      {/* Top Brand Navbar with Hemeley Logo */}
+      <header className="bg-white/95 backdrop-blur-md border-b border-stone-200 sticky top-0 z-40 px-4 py-2.5 shadow-xs">
+        <div className="max-w-3xl mx-auto flex items-center justify-between">
+          <Link to="/" className="inline-flex items-center gap-2 hover:opacity-90 transition-opacity" title="Accueil Hemeley">
+            <HemeleyLogo size={28} />
+          </Link>
+          <div className="flex items-center gap-2">
+            {isOnSite ? (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                Table N° {tableNumber}
+              </span>
+            ) : (
+              <span className="text-xs font-medium text-slate-500">
+                Menu en ligne
+              </span>
+            )}
+          </div>
+        </div>
+      </header>
+
       {/* Dynamic Presence Banner */}
       {isOnSite ? (
-        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white px-4 py-3 shadow-md sticky top-0 z-30" data-testid="presence-banner-onsite">
+        <div className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white px-4 py-3 shadow-md" data-testid="presence-banner-onsite">
           <div className="max-w-3xl mx-auto flex items-center justify-between gap-3">
             <div className="flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center font-bold text-lg flex-shrink-0">
@@ -104,7 +126,7 @@ const PublicMenuPage = () => {
           </div>
         </div>
       ) : (
-        <div className="bg-gradient-to-r from-slate-800 to-slate-900 text-white px-4 py-2.5 shadow-sm sticky top-0 z-30" data-testid="presence-banner-remote">
+        <div className="bg-gradient-to-r from-slate-800 to-slate-900 text-white px-4 py-2.5 shadow-sm" data-testid="presence-banner-remote">
           <div className="max-w-3xl mx-auto flex items-center justify-between text-xs sm:text-sm">
             <span className="flex items-center gap-2 font-medium">
               <span>🛵</span> Commande à distance (À emporter / Livraison)
@@ -121,7 +143,7 @@ const PublicMenuPage = () => {
         photos={vendor.cover_photos && vendor.cover_photos.length > 0
           ? vendor.cover_photos
           : (vendor.cover_base64 ? [vendor.cover_base64] : [])}
-        logo={vendor.logo_base64}
+        logo={vendor.logo_base64 || vendor.logo || vendor.avatar || vendor.image}
         brandColor={brand}
         testid="public-menu-cover"
       />
@@ -130,12 +152,17 @@ const PublicMenuPage = () => {
       <div className="max-w-3xl mx-auto px-4 -mt-12 relative z-10">
         <div className="bg-white rounded-3xl shadow-xl p-6 flex items-center gap-4" data-testid="public-menu-header">
           <div
-            className="w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md text-white font-bold text-2xl"
+            className="w-20 h-20 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-md text-white font-bold text-2xl overflow-hidden relative"
             style={{ backgroundColor: brand }}
           >
-            {vendor.logo_base64
-              ? <img src={vendor.logo_base64} alt={vendor.name} className="w-full h-full rounded-2xl object-cover" />
-              : vendor.name?.charAt(0)?.toUpperCase() || '🍽️'}
+            {(vendor.logo_base64 || vendor.logo || vendor.avatar || vendor.image)
+              ? <img src={vendor.logo_base64 || vendor.logo || vendor.avatar || vendor.image} alt={vendor.name} className="w-full h-full object-cover" />
+              : (
+                <div className="flex flex-col items-center justify-center text-center">
+                  <span className="text-2xl font-black">{vendor.name?.charAt(0)?.toUpperCase() || '🍽️'}</span>
+                  <span className="text-[9px] uppercase tracking-wider opacity-80 mt-0.5 font-semibold">Resto</span>
+                </div>
+              )}
           </div>
           <div className="flex-1 min-w-0">
             <h1 className="text-2xl font-bold text-slate-900 truncate" data-testid="vendor-name">{vendor.name}</h1>
@@ -249,10 +276,15 @@ const PublicMenuPage = () => {
         />
       )}
 
-      {/* Footer */}
-      <div className="text-center py-6 text-xs text-slate-400">
-        <Link to="/" className="hover:underline">propulsé par HEMELEY</Link>
-      </div>
+      {/* Footer with Hemeley Logo */}
+      <footer className="text-center py-8 text-xs text-slate-400 border-t border-stone-200 mt-12 bg-white/40">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <Link to="/" className="hover:opacity-90 inline-block">
+            <HemeleyLogo size={24} />
+          </Link>
+        </div>
+        <p className="text-slate-500 font-medium">Plateforme de commande & livraison HEMELEY</p>
+      </footer>
     </div>
   );
 };

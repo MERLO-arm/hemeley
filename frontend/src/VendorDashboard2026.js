@@ -1308,6 +1308,14 @@ const VendorDashboard2026 = () => {
                       size={200}
                       level="H"
                       includeMargin={true}
+                      imageSettings={{
+                        src: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%230f172a'/><text x='50' y='68' font-size='56' font-family='sans-serif' font-weight='900' text-anchor='middle' fill='%23f97316'>H</text></svg>",
+                        x: undefined,
+                        y: undefined,
+                        height: 38,
+                        width: 38,
+                        excavate: true,
+                      }}
                     />
                   </div>
                   <div className="flex-1">
@@ -1362,7 +1370,15 @@ const VendorDashboard2026 = () => {
                         <QRCodeSVG 
                           value={getTableUrl(tableNum)}
                           size={100}
-                          level="M"
+                          level="H"
+                          imageSettings={{
+                            src: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%230f172a'/><text x='50' y='68' font-size='56' font-family='sans-serif' font-weight='900' text-anchor='middle' fill='%23f97316'>H</text></svg>",
+                            x: undefined,
+                            y: undefined,
+                            height: 20,
+                            width: 20,
+                            excavate: true,
+                          }}
                         />
                       </div>
                       <p className="font-bold mb-2">Table {tableNum}</p>
@@ -1627,19 +1643,30 @@ const VendorDashboard2026 = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className={`w-full max-w-md p-6 rounded-3xl ${darkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white'}`}>
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-bold">Table {selectedTable}</h3>
+              <div className="flex items-center gap-3">
+                <HemeleyLogo size={28} variant={darkMode ? 'dark' : 'default'} />
+                <span className="text-xl font-bold">· Table {selectedTable}</span>
+              </div>
               <button onClick={() => setShowTableQRModal(false)} className="p-2 rounded-lg hover:bg-slate-800">
                 <X size={20} />
               </button>
             </div>
             
             <div className="flex justify-center mb-4">
-              <div className="p-4 bg-white rounded-2xl">
+              <div className="p-4 bg-white rounded-2xl shadow-md">
                 <QRCodeSVG 
                   value={getTableUrl(selectedTable)}
                   size={250}
                   level="H"
                   includeMargin={true}
+                  imageSettings={{
+                    src: "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='24' fill='%230f172a'/><text x='50' y='68' font-size='56' font-family='sans-serif' font-weight='900' text-anchor='middle' fill='%23f97316'>H</text></svg>",
+                    x: undefined,
+                    y: undefined,
+                    height: 48,
+                    width: 48,
+                    excavate: true,
+                  }}
                 />
               </div>
             </div>

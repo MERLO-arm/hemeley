@@ -135,13 +135,20 @@ async def _serialize_vendor_public(vendor: dict, hide_identity: bool = False) ->
     """Public projection of a vendor doc — strips PII on the main marketplace."""
     if not vendor:
         return {}
+    logo = (
+        vendor.get("logo_base64")
+        or vendor.get("logo")
+        or vendor.get("avatar")
+        or vendor.get("image")
+        or vendor.get("profile_image")
+    )
     return {
         "id": vendor.get("id"),
         "slug": vendor.get("slug"),
         "name": vendor.get("name"),  # SHOWN on /menu/:slug (QR page = explicit brand)
         "slogan": vendor.get("slogan"),
         "brand_color": vendor.get("brand_color") or "#FF6B00",
-        "logo_base64": vendor.get("logo_base64"),
+        "logo_base64": logo,
         "cover_base64": vendor.get("cover_base64"),        # legacy single cover (fallback)
         "cover_photos": vendor.get("cover_photos") or [],  # nouveau : jusqu'à 3 photos
         "custom_categories": vendor.get("custom_categories") or [],
